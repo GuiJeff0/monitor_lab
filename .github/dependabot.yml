@@ -1,0 +1,54 @@
+# ──────────────────────────────────────────────────────────────────────────────
+# Dependabot Configuration
+#
+# Dependabot automatically opens PRs to update:
+#   - Python dependencies (pip ecosystem) from pyproject.toml
+#   - GitHub Actions (github-actions ecosystem) in .github/workflows/
+#
+# Every Dependabot PR is validated by the dependency-update.yml workflow.
+# ──────────────────────────────────────────────────────────────────────────────
+
+version: 2
+
+updates:
+  # ── Python / pip dependencies ─────────────────────────────────────────────
+  - package-ecosystem: pip
+    directory: "/"                 # Look for pyproject.toml / requirements.txt in root
+    schedule:
+      interval: weekly
+      day: monday
+      time: "07:00"
+      timezone: "America/Sao_Paulo"
+    open-pull-requests-limit: 10
+    reviewers:
+      - ${{ vars.CODEOWNERS || '' }}
+    labels:
+      - "dependencies"
+      - "python"
+    commit-message:
+      prefix: "chore(deps)"
+    # Group minor and patch updates together to reduce PR noise
+    groups:
+      python-minor-patch:
+        update-types:
+          - minor
+          - patch
+
+  # ── GitHub Actions ────────────────────────────────────────────────────────
+  - package-ecosystem: github-actions
+    directory: "/"
+    schedule:
+      interval: weekly
+      day: monday
+      time: "07:00"
+      timezone: "America/Sao_Paulo"
+    open-pull-requests-limit: 5
+    labels:
+      - "dependencies"
+      - "github-actions"
+    commit-message:
+      prefix: "chore(actions)"
+    groups:
+      github-actions:
+        patterns:
+          - "*"
