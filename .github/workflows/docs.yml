@@ -36,7 +36,7 @@ jobs:
     runs-on: ubuntu-24.04
     steps:
       - name: Checkout repository
-        uses: actions/checkout@v4
+        uses: actions/checkout@v7
 
       - name: Verify README.md exists and is non-empty
         run: |
@@ -56,12 +56,12 @@ jobs:
     runs-on: ubuntu-24.04
     steps:
       - name: Checkout repository
-        uses: actions/checkout@v4
+        uses: actions/checkout@v7
 
       # markdownlint-cli2: fast, configurable Markdown linter
       # Configure rules in .markdownlint.json or .markdownlint.yaml
       - name: Run markdownlint
-        uses: DavidAnson/markdownlint-cli2-action@v19
+        uses: DavidAnson/markdownlint-cli2-action@v24
         with:
           # Lint all markdown files; exclude vendor and node_modules
           globs: |
@@ -77,7 +77,7 @@ jobs:
     if: github.event_name == 'push' && github.ref == 'refs/heads/main'
     steps:
       - name: Checkout repository
-        uses: actions/checkout@v4
+        uses: actions/checkout@v7
 
       # Lychee: fast link checker written in Rust
       # Checks HTTP/HTTPS links in all Markdown files
