@@ -1,0 +1,16 @@
+# markdownlint configuration
+# Reference: https://github.com/DavidAnson/markdownlint/blob/main/doc/Rules.md
+
+default: true
+
+# MD013: Line length — relaxed for documentation-heavy projects
+MD013:
+  line_length: 120
+  code_blocks: false
+  tables: false
+
+# MD033: Inline HTML — allow for README badges and diagrams
+MD033: false
+
+# MD041: First line heading — allow files that start with badges/shields
+MD041: false

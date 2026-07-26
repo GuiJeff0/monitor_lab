@@ -1,0 +1,38 @@
+# Environment files with local secrets
+.env.local
+.env.*.local
+
+# Logs and temporary files
+*.log
+*.tmp
+*.temp
+*.pid
+
+# SSL / TLS certificates & private keys (keep directory structure via .gitkeep)
+traefik/certificates/*
+!traefik/certificates/.gitkeep
+
+# Operating System files
+.DS_Store
+.DS_Store?
+._*
+.Spotlight-V100
+.Trashes
+ehthumbs.db
+Thumbs.db
+
+# IDE and Editor files
+.idea/
+.vscode/
+*.swp
+*~
+*.bak
+
+# Docker data mounts & temporary runtime data (if mounted locally)
+data/
+*.db
+
+# Markdown documentation / archives
+*.md
+!README.md
+

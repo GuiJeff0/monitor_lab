@@ -1,0 +1,151 @@
+# ──────────────────────────────────────────────────────────────────────────────
+# Dependency Update Workflow — Validate Dependabot PRs
+#
+# Triggers on:
+#   - Pull Requests opened by Dependabot
+#
+# When Dependabot opens a PR to update a dependency (Python package or
+# GitHub Actions), this workflow automatically:
+#   1. Validates code quality (lint, format, types)
+#   2. Runs the full test suite
+#   3. Builds the Docker image to catch build-time breakage
+#
+# If all checks pass, the PR can be safely auto-merged (configure via
+# GitHub's branch protection rules or the Dependabot auto-merge setting).
+# ──────────────────────────────────────────────────────────────────────────────
+
+name: Dependency Update
+
+on:
+  pull_request:
+    branches: [main, develop]
+
+permissions:
+  contents: read
+  pull-requests: read
+
+env:
+  PYTHON_VERSION: "3.12"
+
+jobs:
+  # Gate: only run this workflow for Dependabot PRs
+  check-actor:
+    name: Verify Dependabot Actor
+    runs-on: ubuntu-24.04
+    outputs:
+      is-dependabot: ${{ steps.check.outputs.is-dependabot }}
+    steps:
+      - name: Check if actor is Dependabot
+        id: check
+        run: |
+          if [[ "${{ github.actor }}" == "dependabot[bot]" ]]; then
+            echo "is-dependabot=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "is-dependabot=false" >> "$GITHUB_OUTPUT"
+          fi
+
+  # ── Run Full CI on Dependabot PRs ────────────────────────────────────────────
+  lint:
+    name: Lint & Format
+    runs-on: ubuntu-24.04
+    needs: check-actor
+    if: needs.check-actor.outputs.is-dependabot == 'true'
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: ${{ env.PYTHON_VERSION }}
+          cache: pip
+          cache-dependency-path: pyproject.toml
+
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install ".[dev]"
+
+      - name: Run Ruff
+        run: ruff check . --output-format=github
+
+      - name: Run Black
+        run: black --check --diff .
+
+      - name: Run MyPy
+        run: mypy app/ --show-error-codes
+
+  test:
+    name: Tests
+    runs-on: ubuntu-24.04
+    needs: [check-actor, lint]
+    if: needs.check-actor.outputs.is-dependabot == 'true'
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: ${{ env.PYTHON_VERSION }}
+          cache: pip
+          cache-dependency-path: pyproject.toml
+
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install ".[dev]"
+
+      - name: Run tests
+        run: |
+          pytest tests/ \
+            --cov=app \
+            --cov-fail-under=80 \
+            -v
+
+  docker-build:
+    name: Docker Build Check
+    runs-on: ubuntu-24.04
+    needs: [check-actor, lint]
+    if: needs.check-actor.outputs.is-dependabot == 'true'
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Build Docker image (no push)
+        uses: docker/build-push-action@v6
+        with:
+          context: .
+          push: false
+          tags: app:dependabot-check
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+
+  security-check:
+    name: Quick Security Scan
+    runs-on: ubuntu-24.04
+    needs: [check-actor, lint]
+    if: needs.check-actor.outputs.is-dependabot == 'true'
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: ${{ env.PYTHON_VERSION }}
+          cache: pip
+          cache-dependency-path: pyproject.toml
+
+      - name: Install dependencies and pip-audit
+        run: |
+          python -m pip install --upgrade pip
+          pip install ".[dev]"
+          pip install pip-audit
+
+      # Focus audit on the updated dependency
+      - name: Run pip-audit
+        run: pip-audit --strict

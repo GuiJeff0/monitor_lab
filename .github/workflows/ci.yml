@@ -1,0 +1,124 @@
+# ──────────────────────────────────────────────────────────────────────────────
+# CI Workflow — Lint, Type Check & Unit Tests
+#
+# Triggers on:
+#   - Pull Requests (all branches)
+#   - Push to main / develop
+#
+# This workflow is designed to be reusable across FastAPI microservice repos
+# in the observability-lab ecosystem. Requires the following project layout:
+#
+#   app/             → application source code
+#   tests/           → pytest test suite
+#   pyproject.toml   → project metadata and tool config (ruff, black, mypy)
+# ──────────────────────────────────────────────────────────────────────────────
+
+name: CI
+
+on:
+  pull_request:
+    branches: ["*"]
+  push:
+    branches: [main, develop]
+
+# Limit concurrent runs: cancel in-progress CI on the same branch for PRs
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
+
+# Least-privilege permissions
+permissions:
+  contents: read
+  checks: write        # Needed to post test results as check annotations
+  pull-requests: write # Needed to post coverage comments on PRs
+
+env:
+  PYTHON_VERSION: "3.12"
+
+jobs:
+  # ── Lint & Format ────────────────────────────────────────────────────────────
+  lint:
+    name: Lint & Format (${{ matrix.python-version }})
+    runs-on: ubuntu-24.04
+    strategy:
+      fail-fast: true
+      matrix:
+        python-version: ["3.11", "3.12"]
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up Python ${{ matrix.python-version }}
+        uses: actions/setup-python@v5
+        with:
+          python-version: ${{ matrix.python-version }}
+          cache: pip
+          cache-dependency-path: pyproject.toml
+
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install ".[dev]"
+
+      # Ruff: fast Python linter (replaces flake8, isort, etc.)
+      - name: Run Ruff (lint)
+        run: ruff check . --output-format=github
+
+      # Black: opinionated code formatter (check-only, no writes)
+      - name: Run Black (format check)
+        run: black --check --diff .
+
+      # MyPy: static type checking
+      - name: Run MyPy (type check)
+        run: mypy app/ --show-error-codes
+
+  # ── Unit Tests & Coverage ────────────────────────────────────────────────────
+  test:
+    name: Tests & Coverage
+    runs-on: ubuntu-24.04
+    needs: lint # Only run tests if linting passes
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up Python ${{ env.PYTHON_VERSION }}
+        uses: actions/setup-python@v5
+        with:
+          python-version: ${{ env.PYTHON_VERSION }}
+          cache: pip
+          cache-dependency-path: pyproject.toml
+
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install ".[dev]"
+
+      - name: Run Unit Tests with coverage
+        run: |
+          pytest tests/ \
+            --cov=app \
+            --cov-report=xml:coverage.xml \
+            --cov-report=term-missing \
+            --cov-fail-under=80 \
+            --junitxml=junit.xml \
+            -v
+
+      # Upload coverage XML for Codecov or PR comment
+      - name: Upload coverage report
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: coverage-report-${{ github.sha }}
+          path: coverage.xml
+          retention-days: 14
+
+      # Upload JUnit XML for test result annotations
+      - name: Upload test results
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: test-results-${{ github.sha }}
+          path: junit.xml
+          retention-days: 14

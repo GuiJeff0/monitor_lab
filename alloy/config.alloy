@@ -1,0 +1,30 @@
+// Discover Docker containers using the Docker socket
+discovery.docker "containers" {
+  host = "unix:///var/run/docker.sock"
+}
+
+// Scrape container logs using the discovered targets
+loki.source.docker "docker_logs" {
+  host       = "unix:///var/run/docker.sock"
+  targets    = discovery.docker.containers.targets
+  forward_to = [loki.process.add_labels.receiver]
+}
+
+// Add container metadata labels
+loki.process "add_labels" {
+  stage.labels {
+    values = {
+      container = "container_name",
+      service   = "container_label_com_docker_compose_service",
+    }
+  }
+
+  forward_to = [loki.write.endpoint.receiver]
+}
+
+// Push logs to Loki endpoint
+loki.write "endpoint" {
+  endpoint {
+    url = "http://loki:3100/loki/api/v1/push"
+  }
+}
