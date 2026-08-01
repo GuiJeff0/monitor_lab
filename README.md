@@ -50,13 +50,14 @@ This repository contains **only the shared infrastructure**. Future microservice
 
 | Component | Version | Role | Host Route / Port | Internal Access |
 |---|---|---|---|---|
-| **Traefik** | `v3.7` | Reverse Proxy / API Gateway / Router | `http://localhost:8080` (Dashboard)<br>`http://localhost/` | `traefik:8080` |
-| **Grafana** | `13.1.1` | Unified Visualization & Dashboards | `http://localhost/grafana` | `grafana:3000` |
-| **Prometheus** | `v3.5.5` (LTS) | Time-Series Metrics Database | `http://localhost/prometheus` | `prometheus:9090` |
-| **Loki** | `3.7.4` | High-Performance Log Aggregator | `http://localhost/loki` | `loki:3100` |
+| **Traefik** | `v3.7` | Reverse Proxy / API Gateway / Router | `http://monitor.lab:8080/dashboard/` (Dashboard)<br>`http://monitor.lab/` | `traefik:8080` |
+| **Grafana** | `13.1.1` | Unified Visualization & Dashboards | `http://monitor.lab/grafana` | `grafana:3000` |
+| **Prometheus** | `v3.5.5` (LTS) | Time-Series Metrics Database | `http://monitor.lab/prometheus` | `prometheus:9090` |
+| **Loki** | `3.7.4` | High-Performance Log Aggregator | `http://monitor.lab/loki` | `loki:3100` |
 | **Grafana Alloy** | `v1.7.1` | Unified Telemetry Collector | Internal | `alloy:12345` |
 | **Promtail** | `3.0.0` | Legacy Docker Log Shipper | Internal | `promtail:9080` |
-| **Tempo** | `3.0.0` | Distributed Tracing Backend | `http://localhost/tempo` | `tempo:3200`<br>`tempo:4317` (gRPC)<br>`tempo:4318` (HTTP) |
+| **Tempo** | `2.6.1` | Distributed Tracing Backend | `http://monitor.lab/tempo` | `tempo:3200`<br>`tempo:4317` (gRPC)<br>`tempo:4318` (HTTP) |
+| **AdGuard Home** | `v0.107.57` | Local DNS Server (Encrypted Upstream & DNS Rewrites) | `http://dns.monitor.lab/`<br>`192.168.0.7:53` | `adguard:3000` |
 
 ---
 
@@ -67,7 +68,10 @@ observability-lab/
 ├── docker-compose.yml              # Main orchestration specification
 ├── .env                            # Centralized environment variables
 ├── README.md                       # Comprehensive infrastructure documentation
-│
+├── Infrastructure Diagrams.md      # Full architecture & flow diagrams (Mermaid)
+├── Local DNS Standard.md           # Local DNS architecture & setup guide
+├── Distributed Tracing Standard.md # Distributed tracing & correlation rules
+├── API Development Standards.md    # Microservices standards & guidelines
 ├── traefik/                        # Traefik configuration
 │   ├── traefik.yml                 # Static Traefik config (entrypoints, metrics, providers)
 │   ├── dynamic/                    # Dynamic rules, routers, and custom middlewares
