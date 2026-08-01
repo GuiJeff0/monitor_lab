@@ -35,4 +35,5 @@ data/
 # Markdown documentation / archives
 *.md
 !README.md
+!Infrastructure Diagrams.md
 
