@@ -48,12 +48,12 @@ This repository contains **only the shared infrastructure**. Future microservice
 
 ## 🛠️ Stack Components & Versions
 
-| Component | Version | Role | Host Route / Port | Internal Access |
+| Component | Version | Role | Host Route / Port | Internal Access / Healthcheck |
 |---|---|---|---|---|
-| **Traefik** | `v3.7` | Reverse Proxy / API Gateway / Router | `http://monitor.lab:8080/dashboard/` (Dashboard)<br>`http://monitor.lab/` | `traefik:8080` |
-| **Grafana** | `13.1.1` | Unified Visualization & Dashboards | `http://monitor.lab/grafana` | `grafana:3000` |
-| **Prometheus** | `v3.5.5` (LTS) | Time-Series Metrics Database | `http://monitor.lab/prometheus` | `prometheus:9090` |
-| **Loki** | `3.7.4` | High-Performance Log Aggregator | `http://monitor.lab/loki` | `loki:3100` |
+| **Traefik** | `v3.7` | Reverse Proxy / API Gateway / Router | `http://monitor.lab:8080/dashboard/` (Dashboard)<br>`http://monitor.lab/` | `traefik:8080` (`traefik healthcheck`) |
+| **Grafana** | `13.1.1` | Unified Visualization & Dashboards | `http://monitor.lab/grafana` | `grafana:3000` (`curl http://localhost:3000/api/health`) |
+| **Prometheus** | `v3.5.5` (LTS) | Time-Series Metrics Database | `http://monitor.lab/prometheus` | `prometheus:9090` (`wget http://localhost:9090/prometheus/-/healthy`) |
+| **Loki** | `3.7.4` | High-Performance Log Aggregator | `http://monitor.lab/loki` | `loki:3100` (`/usr/bin/loki --verify-config`) |
 | **Grafana Alloy** | `v1.7.1` | Unified Telemetry Collector | Internal | `alloy:12345` |
 | **Promtail** | `3.0.0` | Legacy Docker Log Shipper | Internal | `promtail:9080` |
 | **Tempo** | `2.6.1` | Distributed Tracing Backend | `http://monitor.lab/tempo` | `tempo:3200`<br>`tempo:4317` (gRPC)<br>`tempo:4318` (HTTP) |
@@ -173,7 +173,7 @@ services:
 ### 2. Telemetry Integration Points
 
 - **Logs**: Output JSON logs to standard stdout/stderr. `alloy` and `promtail` automatically discover the container and stream logs to Loki.
-- **Metrics**: Expose a `/metrics` endpoint (Prometheus format) on port `8000`. Add a scrape job in `prometheus/prometheus.yml`:
+- **Metrics**: Expose a `/metrics` endpoint (Prometheus format). The shared Prometheus instance automatically scrapes all internal infrastructure components (`prometheus`, `traefik`, `grafana`, `loki`, `tempo`, `alloy`, `promtail`) and is pre-configured to scrape microservices on port `8000`:
   ```yaml
   - job_name: 'users-api'
     static_configs:
