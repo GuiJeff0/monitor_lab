@@ -1,7 +1,7 @@
 # Environment files with local secrets
 .env.local
 .env.*.local
-
+.env
 # Logs and temporary files
 *.log
 *.tmp
