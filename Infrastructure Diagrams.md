@@ -102,21 +102,22 @@ sequenceDiagram
 
 ## 3. Fluxo de Roteamento do Proxy Reverso (Traefik v3)
 
-Como o **Traefik** recebe as requisições na porta `80` e encaminha internamente na rede Docker `observability-net`:
+Como o **Traefik** recebe as requisições na porta `80` (redirecionando para HTTPS `443` com terminação TLS) e encaminha internamente na rede Docker `observability-net`:
 
 ```mermaid
 graph LR
     subgraph Entrada["Entrypoints Externa"]
-        E80["HTTP :80 (web)"]
+        E80["HTTP :80 (web -> Redirect HTTPS)"]
+        E443["HTTPS :443 (websecure - TLS Terminated)"]
         E8080["HTTP :8080 (traefik)"]
     end
 
-    subgraph Routers["Routers (Regras de Entrada)"]
-        R_Grafana["Host: monitor.lab & Path: /grafana"]
-        R_Prom["Host: monitor.lab & Path: /prometheus"]
-        R_Loki["Host: monitor.lab & Path: /loki"]
-        R_Tempo["Host: monitor.lab & Path: /tempo"]
-        R_DNS["Host: dns.monitor.lab"]
+    subgraph Routers["Routers (Regras de Entrada TLS)"]
+        R_Grafana["Host: monitor.lab & Path: /grafana (TLS)"]
+        R_Prom["Host: monitor.lab & Path: /prometheus (TLS)"]
+        R_Loki["Host: monitor.lab & Path: /loki (TLS)"]
+        R_Tempo["Host: monitor.lab & Path: /tempo (TLS)"]
+        R_DNS["Host: dns.monitor.lab (TLS)"]
         R_Dash["Host: monitor.lab:8080 & Path: /dashboard"]
     end
 
@@ -129,11 +130,12 @@ graph LR
         C_Dash["api@internal"]
     end
 
-    E80 --> R_Grafana --> C_Grafana
-    E80 --> R_Prom --> C_Prom
-    E80 --> R_Loki --> C_Loki
-    E80 --> R_Tempo --> C_Tempo
-    E80 --> R_DNS --> C_DNS
+    E80 -->|Redirect 301| E443
+    E443 --> R_Grafana --> C_Grafana
+    E443 --> R_Prom --> C_Prom
+    E443 --> R_Loki --> C_Loki
+    E443 --> R_Tempo --> C_Tempo
+    E443 --> R_DNS --> C_DNS
     E8080 --> R_Dash --> C_Dash
 ```
 

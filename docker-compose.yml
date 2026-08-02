@@ -21,11 +21,13 @@ services:
     restart: unless-stopped
     ports:
       - "80:80"
+      - "443:443"
       - "8080:8080"
     volumes:
       - /var/run/docker.sock:/var/run/docker.sock:ro
       - ./traefik/traefik.yml:/etc/traefik/traefik.yml:ro
       - ./traefik/dynamic:/etc/traefik/dynamic:ro
+      - ./traefik/certificates:/etc/traefik/certificates:ro
     networks:
       - observability-net
     healthcheck:
@@ -48,7 +50,7 @@ services:
       - GF_SECURITY_ADMIN_USER=${GF_SECURITY_ADMIN_USER:-admin}
       - GF_SECURITY_ADMIN_PASSWORD=${GF_SECURITY_ADMIN_PASSWORD:-admin}
       - GF_SERVER_DOMAIN=monitor.lab
-      - GF_SERVER_ROOT_URL=%(protocol)s://%(domain)s/grafana/
+      - GF_SERVER_ROOT_URL=https://monitor.lab/grafana/
       - GF_SERVER_SERVE_FROM_SUB_PATH=true
       - GF_USERS_ALLOW_SIGN_UP=false
     volumes:
@@ -69,7 +71,8 @@ services:
     labels:
       - "traefik.enable=true"
       - "traefik.http.routers.grafana.rule=PathPrefix(`/grafana`)"
-      - "traefik.http.routers.grafana.entrypoints=web"
+      - "traefik.http.routers.grafana.entrypoints=websecure"
+      - "traefik.http.routers.grafana.tls=true"
       - "traefik.http.services.grafana.loadbalancer.server.port=3000"
 
   # Prometheus - Metrics Collection & Time Series DB
@@ -97,7 +100,8 @@ services:
     labels:
       - "traefik.enable=true"
       - "traefik.http.routers.prometheus.rule=PathPrefix(`/prometheus`)"
-      - "traefik.http.routers.prometheus.entrypoints=web"
+      - "traefik.http.routers.prometheus.entrypoints=websecure"
+      - "traefik.http.routers.prometheus.tls=true"
       - "traefik.http.services.prometheus.loadbalancer.server.port=9090"
 
   # Loki - Log Aggregation System
@@ -120,7 +124,8 @@ services:
     labels:
       - "traefik.enable=true"
       - "traefik.http.routers.loki.rule=PathPrefix(`/loki`)"
-      - "traefik.http.routers.loki.entrypoints=web"
+      - "traefik.http.routers.loki.entrypoints=websecure"
+      - "traefik.http.routers.loki.tls=true"
       - "traefik.http.routers.loki.middlewares=loki-stripprefix"
       - "traefik.http.middlewares.loki-stripprefix.stripprefix.prefixes=/loki"
       - "traefik.http.services.loki.loadbalancer.server.port=3100"
@@ -177,7 +182,8 @@ services:
     labels:
       - "traefik.enable=true"
       - "traefik.http.routers.tempo.rule=PathPrefix(`/tempo`)"
-      - "traefik.http.routers.tempo.entrypoints=web"
+      - "traefik.http.routers.tempo.entrypoints=websecure"
+      - "traefik.http.routers.tempo.tls=true"
       - "traefik.http.routers.tempo.middlewares=tempo-stripprefix"
       - "traefik.http.middlewares.tempo-stripprefix.stripprefix.prefixes=/tempo"
       - "traefik.http.services.tempo.loadbalancer.server.port=3200"
@@ -204,5 +210,6 @@ services:
     labels:
       - "traefik.enable=true"
       - "traefik.http.routers.adguard.rule=Host(`dns.monitor.lab`)"
-      - "traefik.http.routers.adguard.entrypoints=web"
+      - "traefik.http.routers.adguard.entrypoints=websecure"
+      - "traefik.http.routers.adguard.tls=true"
       - "traefik.http.services.adguard.loadbalancer.server.port=3000"
