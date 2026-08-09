@@ -1,47 +1,66 @@
-# Cloud-Native Observability Infrastructure Lab
+# Cloud-Native Observability Lab — Ticket Booking System
 
-Production-grade, reusable observability infrastructure built with **Traefik v3** and the **Grafana Stack** (Mimir, Loki, Tempo, Grafana) with direct **OpenTelemetry SDK** integration and **Grafana Alloy** for infrastructure container logs.
-
-This repository contains **only the shared infrastructure**. Future microservices (e.g., `users-api`, `orders-api`, `notification-api`) connect to this shared platform without modifying the underlying infrastructure.
+Production-grade, reusable observability infrastructure and high-concurrency ticket booking platform built with **Traefik v3**, the **Grafana Stack** (Mimir, Loki, Tempo, Alloy, Grafana), **RabbitMQ**, **PostgreSQL**, **MongoDB**, and **Elasticsearch**.
 
 ---
 
 ## 🏛️ Architecture Overview
 
 ```text
-                               ┌──────────────────────────────────┐
-                               │           HTTP Client            │
-                               └────────────────┬─────────────────┘
-                                                │ :80 / :8080
-                                                ▼
-                               ┌──────────────────────────────────┐
-                               │           Traefik v3             │
-                               │   (Reverse Proxy & API Gateway)  │
-                               └────────────────┬─────────────────┘
-                                                │
-          ┌──────────────────┬───────────────────┼───────────────────┬──────────────────┐
-          │                  │                   │                   │                  │
-     /grafana             /mimir               /loki               /tempo            /api/*
-          │                  │                   │                   │              (future)
-          ▼                  ▼                   ▼                   ▼                  │
-   ┌─────────────┐    ┌─────────────┐     ┌─────────────┐     ┌─────────────┐           │
-   │   Grafana   │    │    Mimir    │     │    Loki     │     │    Tempo    │           │
-   │    :3000    │    │    :8080    │     │    :3100    │     │    :3200    │           │
-   └──────┬──────┘    └──────▲──────┘     └──────▲──────┘     └──────▲──────┘           │
-          │                  │                   │                   │                  │
-          │ Datasources      │ OTLP / Push       │ OTLP / Push       │ OTLP             │
-          │ (Auto-provision) │                   │                   │ (4317/4318)      │
-          └──────────────────┼───────────────────┼───────────────────┼──────────────────┘
-                             │                   │                   │
-                             │            ┌──────┴──────┐            │
-                             │            │    Alloy    │            │
-                             │            │(Docker Logs)│            │
-                             │            └─────────────┘            │
-                             │                                       │
-                      ┌──────┴───────────────────────────────────────┴─────────────────┐
-                      │             Microservices (FastAPI + OpenTelemetry SDK)        │
-                      │     Metrics -> Mimir  |  Logs -> Loki  |  Traces -> Tempo      │
-                      └────────────────────────────────────────────────────────────────┘
+                                  Clientes (Web / Mobile)
+                                             │
+                                       HTTPS (TLS)
+                                             │
+                                             ▼
+                                  ┌────────────────────┐
+                                  │     Traefik v3     │
+                                  │   Reverse Proxy    │
+                                  └──────────┬─────────┘
+                                             │ HTTP
+                                             ▼
+                                  ┌────────────────────┐      ┌──────────────┐
+                                  │    FastAPI BFF     │◄────►│    Redis     │
+                                  │   (API Gateway)    │      │ Cache/Limits │
+                                  └────┬───────────┬───┘      └──────────────┘
+                                       │           │
+                 ┌─────────────────────┘           └──────────────────────┐
+                 │ (Síncrono - gRPC)                                      │ (Assíncrono - AMQP)
+                 ▼                                                        ▼
+   ┌───────────────────────────┐                            ┌───────────────────────────┐
+   │    Serviços Síncronos     │                            │     Message Broker        │
+   │         (Golang)          │                            │        RabbitMQ           │
+   │                           │                            └─────────────┬─────────────┘
+   │  • Auth Service   (:50051)│                                          │
+   │  • User Service   (:50052)│                                          │ Consumo
+   │  • Event Service  (:50053)│                                          ▼
+   └─────────────┬─────────────┘                            ┌───────────────────────────┐
+                 │                                          │    Serviços Assíncronos   │
+                 │                                          │         (Golang)          │
+                 │                                          │                           │
+                 │                                          │  • Orders Service         │
+                 │                                          │  • Payment Service        │
+                 │                                          │  • Notification Service   │
+                 │                                          │  • Search Sync Worker     │
+                 │                                          └─────────────┬─────────────┘
+                 ▼                                                        ▼
+   ┌────────────────────────────────────────────────────────────────────────────────────┐
+   │                               PERSISTÊNCIA POLIGLOTA                               │
+   ├──────────────────────────┬─────────────────────────────┬───────────────────────────┤
+   │        PostgreSQL        │           MongoDB           │       Elasticsearch       │
+   │ (Users, Orders, Tickets) │  (Event Catalog, Audit Logs)│  (Event Search & Filters) │
+   └──────────────────────────┴─────────────────────────────┴───────────────────────────┘
+                 │                                                        │
+                 └──────────────────── OpenTelemetry SDK ────────────────┘
+                                  │              │              │
+                            (OTLP Metrics)  (OTLP Logs)   (OTLP Traces)
+                                  │              │              │
+                                  ▼              ▼              ▼
+                                Mimir          Loki           Tempo
+                                  │              │              │
+                                  └──────────────┼──────────────┘
+                                                 │
+                                                 ▼
+                                              Grafana
 ```
 
 ---
@@ -50,158 +69,97 @@ This repository contains **only the shared infrastructure**. Future microservice
 
 | Component | Version | Role | Host Route / Port | Internal Access / Healthcheck |
 |---|---|---|---|---|
-| **Traefik** | `v3.7` | Reverse Proxy / API Gateway / Router | `http://monitor.lab:8080/dashboard/` (Dashboard)<br>`https://monitor.lab/` | `traefik:8080` (`traefik healthcheck`) |
+| **Traefik** | `v3.7` | Reverse Proxy / API Gateway / Router | `http://monitor.lab:8080/dashboard/`<br>`https://monitor.lab/` | `traefik:8080` (`traefik healthcheck`) |
 | **Grafana** | `13.1.1` | Unified Visualization & Dashboards | `https://monitor.lab/grafana` | `grafana:3000` (`curl http://localhost:3000/api/health`) |
-| **Mimir** | `2.15.0` | Scalable Time-Series Metrics Database | `https://monitor.lab/mimir` | `mimir:8080` (`wget http://localhost:8080/ready`) |
-| **Loki** | `3.7.4` | High-Performance Log Aggregator | `https://monitor.lab/loki` | `loki:3100` (`/usr/bin/loki --verify-config`) |
-| **Grafana Alloy** | `v1.7.1` | Unified Telemetry Collector (Docker Logs) | Internal | `alloy:12345` |
-| **Tempo** | `2.6.1` | Distributed Tracing Backend | `https://monitor.lab/tempo` | `tempo:3200`<br>`tempo:4317` (gRPC)<br>`tempo:4318` (HTTP) |
+| **Mimir** | `2.15.0` | Scalable Time-Series Metrics TSDB | `https://monitor.lab/mimir` | `mimir:8080` (`/bin/mimir -version`) |
+| **Loki** | `3.7.4` | Structured Log Aggregator | `https://monitor.lab/loki` | `loki:3100` (`/usr/bin/loki --verify-config`) |
+| **Grafana Alloy** | `v1.7.1` | Unified Telemetry Collector (Docker Logs) | Internal | `alloy:12345` (`/bin/alloy --version`) |
+| **Tempo** | `2.6.1` | Distributed Tracing Backend | `https://monitor.lab/tempo` | `tempo:3200`<br>`tempo:4317` (gRPC OTLP)<br>`tempo:4318` (HTTP OTLP) |
 | **AdGuard Home** | `v0.107.57` | Local DNS Server (Encrypted Upstream & DNS Rewrites) | `https://dns.monitor.lab/`<br>`192.168.0.7:53` | `adguard:3000` |
 
 ---
 
-## 📁 Directory Structure
+## 📚 Central de Documentação (`docs/`)
+
+Toda a documentação técnica foi categorizada e organizada dentro da pasta [`docs/`](docs/README.md):
+
+### 🏛️ [Arquitetura](docs/architecture/)
+- [Ticket Booking System Architecture](docs/architecture/ticket_system_architecture.md)
+- [Diagramas da Infraestrutura](docs/architecture/infrastructure-diagrams.md)
+
+### 📋 [Padrões e Boas Práticas](docs/standards/)
+- [Padrão de Observabilidade](docs/standards/observability-standard.md)
+- [Guia de Boas Práticas](docs/standards/best-practices.md)
+- [Padrão de Desenvolvimento de Microsserviços](docs/standards/api-development-standards.md)
+- [Padrão de Tracing Distribuído & Correlation ID](docs/standards/distributed-tracing-standard.md)
+- [Padrão de DNS Local](docs/standards/local-dns-standard.md)
+
+### 🏗️ [Infraestrutura](docs/infrastructure/)
+- [Traefik v3](docs/infrastructure/traefik.md)
+- [Grafana](docs/infrastructure/grafana.md)
+- [Grafana Mimir](docs/infrastructure/mimir.md)
+- [Grafana Loki](docs/infrastructure/loki.md)
+- [Grafana Tempo](docs/infrastructure/tempo.md)
+- [Grafana Alloy](docs/infrastructure/alloy.md)
+
+### 🚀 [Microsserviços](docs/microservices/)
+- [FastAPI BFF](docs/microservices/fastapi-bff.md)
+- [Auth Service](docs/microservices/auth-service.md)
+- [User Service](docs/microservices/user-service.md)
+- [Event Service](docs/microservices/event-service.md)
+- [Orders Service](docs/microservices/orders-service.md)
+- [Payment Service](docs/microservices/payment-service.md)
+- [Notification Service](docs/microservices/notification-service.md)
+- [Search Sync Worker](docs/microservices/search-sync-worker.md)
+
+---
+
+## 📁 Estrutura do Repositório
 
 ```text
 observability-lab/
-├── docker-compose.yml              # Main orchestration specification
-├── .env                            # Centralized environment variables
-├── README.md                       # Comprehensive infrastructure documentation
-├── Infrastructure Diagrams.md      # Full architecture & flow diagrams (Mermaid)
-├── Local DNS Standard.md           # Local DNS architecture & setup guide
-├── Distributed Tracing Standard.md # Distributed tracing & correlation rules
-├── API Development Standards.md    # Microservices standards & guidelines
-├── traefik/                        # Traefik configuration
-│   ├── traefik.yml                 # Static Traefik config (entrypoints :80, :443, :8080)
-│   ├── dynamic/                    # Dynamic rules, routers, and TLS options (tls.yml)
-│   └── certificates/               # Wildcard TLS certs (*.monitor.lab) & rootCA.pem
+├── docker-compose.yml              # Orquestração de containers da infraestrutura
+├── .env                            # Versões de imagens e variáveis de ambiente globais
+├── AGENTS.md                       # Especificações e diretrizes mestres
+├── README.md                       # Apresentação do repositório
 │
-├── grafana/                        # Grafana automated provisioning
+├── traefik/                        # Configurações do Proxy Reverso
+│   ├── traefik.yml
+│   └── dynamic/
+│
+├── grafana/                        # Provisionamento e Dashboards
 │   ├── provisioning/
-│   │   ├── dashboards/             # Auto-load dashboard providers
-│   │   │   └── dashboards.yml
-│   │   └── datasources/            # Auto-provision Mimir, Loki, Tempo
-│   │       └── datasources.yml
-│   └── dashboards/                 # Drop JSON dashboard definitions here
+│   │   └── datasources/
+│   └── dashboards/
 │
-├── mimir/                          # Grafana Mimir configuration
-│   └── mimir.yml                   # TSDB storage, monolithic single-process config
+├── mimir/                          # Configurações do Grafana Mimir TSDB
+│   └── mimir.yml
+├── loki/                           # Configurações do Grafana Loki
+│   └── config.yml
+├── tempo/                          # Configurações do Grafana Tempo
+│   └── tempo.yml
+├── alloy/                          # Configurações do Grafana Alloy Collector
+│   └── config.alloy
 │
-├── loki/                           # Loki configuration
-│   └── config.yml                  # TSDB storage, schema v13, local filesystem
-│
-├── alloy/                          # Grafana Alloy configuration
-│   └── config.alloy                # River syntax for Docker log discovery & Loki push
-│
-└── tempo/                          # Tempo configuration
-    └── tempo.yml                   # OTLP receivers (gRPC/HTTP), WAL, metrics generator -> Mimir
+└── docs/                           # Documentação centralizada
+    ├── README.md
+    ├── architecture/
+    ├── standards/
+    ├── infrastructure/
+    └── microservices/
 ```
 
 ---
 
-## 🚀 Quick Start
+## 🚀 Como Iniciar a Infraestrutura
 
-### Prerequisites
-
-- [Docker Engine](https://docs.docker.com/engine/install/) (v24.0+)
-- [Docker Compose](https://docs.docker.com/compose/install/) (v2.20+)
-- [mkcert](https://github.com/FiloSottile/mkcert) (for generating trusted local CA & TLS certificates)
-
-### Launching the Infrastructure
-
-1. Clone the repository and navigate to the directory:
-   ```bash
-   cd monitor_lab
-   ```
-
-2. Start the observability stack in detached mode:
-   ```bash
-   docker compose up -d
-   ```
-
-3. Verify container health status:
-   ```bash
-   docker compose ps
-   ```
-
-All 7 containers (`traefik`, `grafana`, `mimir`, `loki`, `alloy`, `tempo`, `adguard`) should show as `running` or `healthy`.
-
----
-
-## 🌐 Accessing Services
-
-| Service | Access URL | Protocol / Port | Credentials (Default) |
-|---|---|---|---|
-| **Traefik Dashboard** | [http://monitor.lab:8080/dashboard/](http://monitor.lab:8080/dashboard/) | HTTP / 8080 | None (Dev mode) |
-| **Grafana** | [https://monitor.lab/grafana/](https://monitor.lab/grafana/) | HTTPS / 443 (auto-redirect) | User: `admin` / Password: `admin` |
-| **Mimir Health** | [https://monitor.lab/mimir/ready](https://monitor.lab/mimir/ready) | HTTPS / 443 (auto-redirect) | None |
-| **Loki Health** | [https://monitor.lab/loki/ready](https://monitor.lab/loki/ready) | HTTPS / 443 (auto-redirect) | None |
-| **Tempo Health** | [https://monitor.lab/tempo/ready](https://monitor.lab/tempo/ready) | HTTPS / 443 (auto-redirect) | None |
-| **AdGuard Home** | [https://dns.monitor.lab/](https://dns.monitor.lab/) | HTTPS / 443 (auto-redirect) | Setup Wizard / Admin |
-
----
-
-## 🔌 Connecting Future Microservices
-
-All application services (e.g., FastAPI, Node.js, Go) should attach to the shared Docker network (`observability-net`).
-
-### 1. Network Configuration in Microservice `docker-compose.yml`
-
-```yaml
-networks:
-  observability-net:
-    external: true
-    name: observability-net
-
-services:
-  users-api:
-    image: users-api:latest
-    networks:
-      - observability-net
-    labels:
-      - "traefik.enable=true"
-      - "traefik.http.routers.users-api.rule=PathPrefix(`/api/v1/users`)"
-      - "traefik.http.routers.users-api.entrypoints=web"
-      - "traefik.http.services.users-api.loadbalancer.server.port=8000"
-    environment:
-      - OTEL_SERVICE_NAME=users-api
-      - OTEL_EXPORTER_OTLP_TRACES_ENDPOINT=http://tempo:4317
-      - OTEL_EXPORTER_OTLP_METRICS_ENDPOINT=http://mimir:8080/otlp/v1/metrics
-      - OTEL_EXPORTER_OTLP_LOGS_ENDPOINT=http://loki:3100/otlp/v1/logs
-```
-
-### 2. Telemetry Integration Points
-
-- **Logs**: OpenTelemetry SDK exports logs directly to `loki:3100` via OTLP. In addition, `alloy` discovers container stdout/stderr logs and streams them to Loki.
-- **Metrics**: OpenTelemetry SDK pushes metrics directly to `mimir:8080/otlp/v1/metrics` or via Prometheus Remote Write.
-- **Traces**: OpenTelemetry SDK sends traces to `tempo:4317` (gRPC) or `tempo:4318` (HTTP).
-
----
-
-## 🔍 Grafana Pre-Configured Telemetry Correlator
-
-Grafana is provisioned with cross-telemetry correlation rules out of the box:
-
-1. **Log → Trace Correlation**: Loki log lines containing `"traceID":"..."` automatically display a clickable link directly opening the trace in **Tempo**.
-2. **Trace → Log Correlation**: Viewing a trace in Tempo provides a direct action button to view corresponding container logs in **Loki** filtered by service and timeframe.
-3. **Trace → Metrics Correlation**: Service map node graph in Tempo uses **Mimir** metrics for span rate and latency calculations.
-
----
-
-## 🧹 Maintenance & Cleanup
-
-### Stop Services
 ```bash
-docker compose down
+# 1. Validar sintaxe do Docker Compose
+docker compose config
+
+# 2. Iniciar todos os serviços de infraestrutura
+docker compose up -d
+
+# 3. Verificar o status e health de todos os containers
+docker compose ps
 ```
-
-### Stop Services & Remove Persistent Volumes (Data Reset)
-```bash
-docker compose down -v
-```
-
----
-
-## 📜 License
-
-MIT License. Designed for reusable Cloud-Native microservice architecture labs.
