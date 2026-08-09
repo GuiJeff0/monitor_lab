@@ -1,0 +1,39 @@
+# Grafana Mimir Configuration (Monolithic / Single-Process Mode)
+# Multi-tenancy is disabled for local observability lab usage.
+
+multitenancy_enabled: false
+
+server:
+  http_listen_port: 8080
+  grpc_listen_port: 9095
+  log_level: info
+
+common:
+  storage:
+    backend: filesystem
+    filesystem:
+      dir: /var/mimir/data
+
+ingester:
+  ring:
+    replication_factor: 1
+
+blocks_storage:
+  backend: filesystem
+  filesystem:
+    dir: /var/mimir/data/tsdb
+  tsdb:
+    dir: /var/mimir/data/tsdb-active
+
+compactor:
+  data_dir: /var/mimir/data/compactor
+
+ruler_storage:
+  backend: filesystem
+  filesystem:
+    dir: /var/mimir/data/rules
+
+limits:
+  max_global_series_per_user: 1000000
+  ingestion_rate: 10000
+  ingestion_burst_size: 20000

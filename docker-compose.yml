@@ -7,7 +7,7 @@ networks:
 
 volumes:
   grafana-data:
-  prometheus-data:
+  mimir-data:
   loki-data:
   tempo-data:
   adguard-work:
@@ -60,7 +60,7 @@ services:
     networks:
       - observability-net
     depends_on:
-      - prometheus
+      - mimir
       - loki
       - tempo
     healthcheck:
@@ -75,34 +75,30 @@ services:
       - "traefik.http.routers.grafana.tls=true"
       - "traefik.http.services.grafana.loadbalancer.server.port=3000"
 
-  # Prometheus - Metrics Collection & Time Series DB
-  prometheus:
-    image: prom/prometheus:${PROMETHEUS_VERSION:-v3.5.5}
-    container_name: prometheus
+  # Grafana Mimir - Scalable Metrics & Time Series DB
+  mimir:
+    image: grafana/mimir:${MIMIR_VERSION:-2.15.0}
+    container_name: mimir
     restart: unless-stopped
-    command:
-      - "--config.file=/etc/prometheus/prometheus.yml"
-      - "--storage.tsdb.path=/prometheus"
-      - "--web.console.libraries=/usr/share/prometheus/console_libraries"
-      - "--web.console.templates=/usr/share/prometheus/consoles"
-      - "--web.external-url=/prometheus/"
-      - "--web.enable-remote-write-receiver"
+    command: "-config.file=/etc/mimir/mimir.yml"
     volumes:
-      - ./prometheus/prometheus.yml:/etc/prometheus/prometheus.yml:ro
-      - prometheus-data:/prometheus
+      - ./mimir/mimir.yml:/etc/mimir/mimir.yml:ro
+      - mimir-data:/var/mimir
     networks:
       - observability-net
     healthcheck:
-      test: ["CMD", "wget", "--spider", "-q", "http://localhost:9090/prometheus/-/healthy"]
+      test: ["CMD", "/bin/mimir", "-version"]
       interval: 10s
       timeout: 5s
       retries: 3
     labels:
       - "traefik.enable=true"
-      - "traefik.http.routers.prometheus.rule=PathPrefix(`/prometheus`)"
-      - "traefik.http.routers.prometheus.entrypoints=websecure"
-      - "traefik.http.routers.prometheus.tls=true"
-      - "traefik.http.services.prometheus.loadbalancer.server.port=9090"
+      - "traefik.http.routers.mimir.rule=PathPrefix(`/mimir`)"
+      - "traefik.http.routers.mimir.entrypoints=websecure"
+      - "traefik.http.routers.mimir.tls=true"
+      - "traefik.http.routers.mimir.middlewares=mimir-stripprefix"
+      - "traefik.http.middlewares.mimir-stripprefix.stripprefix.prefixes=/mimir"
+      - "traefik.http.services.mimir.loadbalancer.server.port=8080"
 
   # Loki - Log Aggregation System
   loki:
@@ -147,21 +143,12 @@ services:
       - observability-net
     depends_on:
       - loki
-
-  # Promtail - Legacy Docker Log Collector
-  promtail:
-    image: grafana/promtail:${PROMTAIL_VERSION:-3.0.0}
-    container_name: promtail
-    restart: unless-stopped
-    command: "-config.file=/etc/promtail/config.yml"
-    volumes:
-      - ./promtail/config.yml:/etc/promtail/config.yml:ro
-      - /var/run/docker.sock:/var/run/docker.sock:ro
-      - /var/lib/docker/containers:/var/lib/docker/containers:ro
-    networks:
-      - observability-net
-    depends_on:
-      - loki
+      - mimir
+    healthcheck:
+      test: ["CMD", "/bin/alloy", "--version"]
+      interval: 10s
+      timeout: 5s
+      retries: 3
 
   # Grafana Tempo - Distributed Tracing Backend
   tempo:

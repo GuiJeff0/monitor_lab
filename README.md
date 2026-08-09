@@ -1,6 +1,6 @@
 # Cloud-Native Observability Infrastructure Lab
 
-Production-grade, reusable observability infrastructure built with **Traefik v3** and the **Grafana LGTM Stack** (Loki, Grafana, Tempo, Prometheus) supplemented with **Grafana Alloy** and **Promtail**.
+Production-grade, reusable observability infrastructure built with **Traefik v3** and the **Grafana Stack** (Mimir, Loki, Tempo, Grafana) with direct **OpenTelemetry SDK** integration and **Grafana Alloy** for infrastructure container logs.
 
 This repository contains **only the shared infrastructure**. Future microservices (e.g., `users-api`, `orders-api`, `notification-api`) connect to this shared platform without modifying the underlying infrastructure.
 
@@ -19,29 +19,29 @@ This repository contains **only the shared infrastructure**. Future microservice
                                │   (Reverse Proxy & API Gateway)  │
                                └────────────────┬─────────────────┘
                                                 │
-         ┌──────────────────┬───────────────────┼───────────────────┬──────────────────┐
-         │                  │                   │                   │                  │
-    /grafana           /prometheus            /loki               /tempo            /api/*
-         │                  │                   │                   │              (future)
-         ▼                  ▼                   ▼                   ▼                  │
-  ┌─────────────┐    ┌─────────────┐     ┌─────────────┐     ┌─────────────┐           │
-  │   Grafana   │    │ Prometheus  │     │    Loki     │     │    Tempo    │           │
-  │    :3000    │    │    :9090    │     │    :3100    │     │    :3200    │           │
-  └──────┬──────┘    └──────▲──────┘     └──────▲──────┘     └──────▲──────┘           │
-         │                  │                   │                   │                  │
-         │ Datasources      │ Scraping          │ Push              │ OTLP             │
-         │ (Auto-provision) │                   │                   │ (4317/4318)      │
-         └──────────────────┼───────────────────┼───────────────────┼──────────────────┘
-                            │                   │                   │
-                     ┌──────┴──────┐     ┌──────┴──────┐            │
-                     │ Traefik     │     │ Alloy /     │            │
-                     │ Metrics     │     │ Promtail    │            │
-                     └─────────────┘     └─────────────┘            │
-                                                                    │
-                     ┌──────────────────────────────────────────────┴─────────────────┐
-                     │           Future Microservices (FastAPI, etc.)                │
-                     │   Logs -> Loki  |  Metrics -> Prometheus  |  Traces -> Tempo   │
-                     └────────────────────────────────────────────────────────────────┘
+          ┌──────────────────┬───────────────────┼───────────────────┬──────────────────┐
+          │                  │                   │                   │                  │
+     /grafana             /mimir               /loki               /tempo            /api/*
+          │                  │                   │                   │              (future)
+          ▼                  ▼                   ▼                   ▼                  │
+   ┌─────────────┐    ┌─────────────┐     ┌─────────────┐     ┌─────────────┐           │
+   │   Grafana   │    │    Mimir    │     │    Loki     │     │    Tempo    │           │
+   │    :3000    │    │    :8080    │     │    :3100    │     │    :3200    │           │
+   └──────┬──────┘    └──────▲──────┘     └──────▲──────┘     └──────▲──────┘           │
+          │                  │                   │                   │                  │
+          │ Datasources      │ OTLP / Push       │ OTLP / Push       │ OTLP             │
+          │ (Auto-provision) │                   │                   │ (4317/4318)      │
+          └──────────────────┼───────────────────┼───────────────────┼──────────────────┘
+                             │                   │                   │
+                             │            ┌──────┴──────┐            │
+                             │            │    Alloy    │            │
+                             │            │(Docker Logs)│            │
+                             │            └─────────────┘            │
+                             │                                       │
+                      ┌──────┴───────────────────────────────────────┴─────────────────┐
+                      │             Microservices (FastAPI + OpenTelemetry SDK)        │
+                      │     Metrics -> Mimir  |  Logs -> Loki  |  Traces -> Tempo      │
+                      └────────────────────────────────────────────────────────────────┘
 ```
 
 ---
@@ -52,10 +52,9 @@ This repository contains **only the shared infrastructure**. Future microservice
 |---|---|---|---|---|
 | **Traefik** | `v3.7` | Reverse Proxy / API Gateway / Router | `http://monitor.lab:8080/dashboard/` (Dashboard)<br>`https://monitor.lab/` | `traefik:8080` (`traefik healthcheck`) |
 | **Grafana** | `13.1.1` | Unified Visualization & Dashboards | `https://monitor.lab/grafana` | `grafana:3000` (`curl http://localhost:3000/api/health`) |
-| **Prometheus** | `v3.5.5` (LTS) | Time-Series Metrics Database | `https://monitor.lab/prometheus` | `prometheus:9090` (`wget http://localhost:9090/prometheus/-/healthy`) |
+| **Mimir** | `2.15.0` | Scalable Time-Series Metrics Database | `https://monitor.lab/mimir` | `mimir:8080` (`wget http://localhost:8080/ready`) |
 | **Loki** | `3.7.4` | High-Performance Log Aggregator | `https://monitor.lab/loki` | `loki:3100` (`/usr/bin/loki --verify-config`) |
-| **Grafana Alloy** | `v1.7.1` | Unified Telemetry Collector | Internal | `alloy:12345` |
-| **Promtail** | `3.0.0` | Legacy Docker Log Shipper | Internal | `promtail:9080` |
+| **Grafana Alloy** | `v1.7.1` | Unified Telemetry Collector (Docker Logs) | Internal | `alloy:12345` |
 | **Tempo** | `2.6.1` | Distributed Tracing Backend | `https://monitor.lab/tempo` | `tempo:3200`<br>`tempo:4317` (gRPC)<br>`tempo:4318` (HTTP) |
 | **AdGuard Home** | `v0.107.57` | Local DNS Server (Encrypted Upstream & DNS Rewrites) | `https://dns.monitor.lab/`<br>`192.168.0.7:53` | `adguard:3000` |
 
@@ -81,12 +80,12 @@ observability-lab/
 │   ├── provisioning/
 │   │   ├── dashboards/             # Auto-load dashboard providers
 │   │   │   └── dashboards.yml
-│   │   └── datasources/            # Auto-provision Prometheus, Loki, Tempo
+│   │   └── datasources/            # Auto-provision Mimir, Loki, Tempo
 │   │       └── datasources.yml
 │   └── dashboards/                 # Drop JSON dashboard definitions here
 │
-├── prometheus/                     # Prometheus configuration
-│   └── prometheus.yml              # Scrape jobs & remote write receivers
+├── mimir/                          # Grafana Mimir configuration
+│   └── mimir.yml                   # TSDB storage, monolithic single-process config
 │
 ├── loki/                           # Loki configuration
 │   └── config.yml                  # TSDB storage, schema v13, local filesystem
@@ -94,11 +93,8 @@ observability-lab/
 ├── alloy/                          # Grafana Alloy configuration
 │   └── config.alloy                # River syntax for Docker log discovery & Loki push
 │
-├── promtail/                       # Promtail configuration (legacy shipper)
-│   └── config.yml                  # Container log scraping rules
-│
 └── tempo/                          # Tempo configuration
-    └── tempo.yml                   # OTLP receivers (gRPC/HTTP), WAL, metrics generator
+    └── tempo.yml                   # OTLP receivers (gRPC/HTTP), WAL, metrics generator -> Mimir
 ```
 
 ---
@@ -128,7 +124,7 @@ observability-lab/
    docker compose ps
    ```
 
-All 8 containers (`traefik`, `grafana`, `prometheus`, `loki`, `alloy`, `promtail`, `tempo`, `adguard`) should show as `running` or `healthy`.
+All 7 containers (`traefik`, `grafana`, `mimir`, `loki`, `alloy`, `tempo`, `adguard`) should show as `running` or `healthy`.
 
 ---
 
@@ -138,7 +134,7 @@ All 8 containers (`traefik`, `grafana`, `prometheus`, `loki`, `alloy`, `promtail
 |---|---|---|---|
 | **Traefik Dashboard** | [http://monitor.lab:8080/dashboard/](http://monitor.lab:8080/dashboard/) | HTTP / 8080 | None (Dev mode) |
 | **Grafana** | [https://monitor.lab/grafana/](https://monitor.lab/grafana/) | HTTPS / 443 (auto-redirect) | User: `admin` / Password: `admin` |
-| **Prometheus UI** | [https://monitor.lab/prometheus/](https://monitor.lab/prometheus/) | HTTPS / 443 (auto-redirect) | None |
+| **Mimir Health** | [https://monitor.lab/mimir/ready](https://monitor.lab/mimir/ready) | HTTPS / 443 (auto-redirect) | None |
 | **Loki Health** | [https://monitor.lab/loki/ready](https://monitor.lab/loki/ready) | HTTPS / 443 (auto-redirect) | None |
 | **Tempo Health** | [https://monitor.lab/tempo/ready](https://monitor.lab/tempo/ready) | HTTPS / 443 (auto-redirect) | None |
 | **AdGuard Home** | [https://dns.monitor.lab/](https://dns.monitor.lab/) | HTTPS / 443 (auto-redirect) | Setup Wizard / Admin |
@@ -168,20 +164,17 @@ services:
       - "traefik.http.routers.users-api.entrypoints=web"
       - "traefik.http.services.users-api.loadbalancer.server.port=8000"
     environment:
-      - OTEL_EXPORTER_OTLP_ENDPOINT=http://tempo:4317
       - OTEL_SERVICE_NAME=users-api
+      - OTEL_EXPORTER_OTLP_TRACES_ENDPOINT=http://tempo:4317
+      - OTEL_EXPORTER_OTLP_METRICS_ENDPOINT=http://mimir:8080/otlp/v1/metrics
+      - OTEL_EXPORTER_OTLP_LOGS_ENDPOINT=http://loki:3100/otlp/v1/logs
 ```
 
 ### 2. Telemetry Integration Points
 
-- **Logs**: Output JSON logs to standard stdout/stderr. `alloy` and `promtail` automatically discover the container and stream logs to Loki.
-- **Metrics**: Expose a `/metrics` endpoint (Prometheus format). The shared Prometheus instance automatically scrapes all internal infrastructure components (`prometheus`, `traefik`, `grafana`, `loki`, `tempo`, `alloy`, `promtail`) and is pre-configured to scrape microservices on port `8000`:
-  ```yaml
-  - job_name: 'users-api'
-    static_configs:
-      - targets: ['users-api:8000']
-  ```
-- **Traces**: Configure OpenTelemetry SDK to send traces to `tempo:4317` (gRPC) or `tempo:4318` (HTTP).
+- **Logs**: OpenTelemetry SDK exports logs directly to `loki:3100` via OTLP. In addition, `alloy` discovers container stdout/stderr logs and streams them to Loki.
+- **Metrics**: OpenTelemetry SDK pushes metrics directly to `mimir:8080/otlp/v1/metrics` or via Prometheus Remote Write.
+- **Traces**: OpenTelemetry SDK sends traces to `tempo:4317` (gRPC) or `tempo:4318` (HTTP).
 
 ---
 
@@ -191,7 +184,7 @@ Grafana is provisioned with cross-telemetry correlation rules out of the box:
 
 1. **Log → Trace Correlation**: Loki log lines containing `"traceID":"..."` automatically display a clickable link directly opening the trace in **Tempo**.
 2. **Trace → Log Correlation**: Viewing a trace in Tempo provides a direct action button to view corresponding container logs in **Loki** filtered by service and timeframe.
-3. **Trace → Metrics Correlation**: Service map node graph in Tempo uses **Prometheus** metrics for span rate and latency calculations.
+3. **Trace → Metrics Correlation**: Service map node graph in Tempo uses **Mimir** metrics for span rate and latency calculations.
 
 ---
 
