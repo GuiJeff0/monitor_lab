@@ -1,3 +1,7 @@
+// ==========================================
+// 1. LOGS PIPELINE (Docker -> Loki)
+// ==========================================
+
 // Discover Docker containers using the Docker socket
 discovery.docker "containers" {
   host = "unix:///var/run/docker.sock"
@@ -27,4 +31,74 @@ loki.write "endpoint" {
   endpoint {
     url = "http://loki:3100/loki/api/v1/push"
   }
+}
+
+// ==========================================
+// 2. METRICS PIPELINE (Scrape -> Mimir)
+// ==========================================
+
+// Remote write endpoint to Mimir
+prometheus.remote_write "mimir" {
+  endpoint {
+    url = "http://mimir:8080/api/v1/push"
+  }
+}
+
+// Scrape Alloy self metrics
+prometheus.scrape "alloy" {
+  targets = [
+    {"__address__" = "localhost:12345", "job" = "alloy"},
+  ]
+  forward_to = [prometheus.remote_write.mimir.receiver]
+  scrape_interval = "15s"
+}
+
+// Scrape Traefik metrics
+prometheus.scrape "traefik" {
+  targets = [
+    {"__address__" = "traefik:8080", "job" = "traefik"},
+  ]
+  metrics_path = "/metrics"
+  forward_to = [prometheus.remote_write.mimir.receiver]
+  scrape_interval = "15s"
+}
+
+// Scrape Mimir internal metrics
+prometheus.scrape "mimir" {
+  targets = [
+    {"__address__" = "mimir:8080", "job" = "mimir"},
+  ]
+  metrics_path = "/metrics"
+  forward_to = [prometheus.remote_write.mimir.receiver]
+  scrape_interval = "15s"
+}
+
+// Scrape Loki internal metrics
+prometheus.scrape "loki" {
+  targets = [
+    {"__address__" = "loki:3100", "job" = "loki"},
+  ]
+  metrics_path = "/metrics"
+  forward_to = [prometheus.remote_write.mimir.receiver]
+  scrape_interval = "15s"
+}
+
+// Scrape Tempo internal metrics
+prometheus.scrape "tempo" {
+  targets = [
+    {"__address__" = "tempo:3200", "job" = "tempo"},
+  ]
+  metrics_path = "/metrics"
+  forward_to = [prometheus.remote_write.mimir.receiver]
+  scrape_interval = "15s"
+}
+
+// Scrape Grafana internal metrics
+prometheus.scrape "grafana" {
+  targets = [
+    {"__address__" = "grafana:3000", "job" = "grafana"},
+  ]
+  metrics_path = "/grafana/metrics"
+  forward_to = [prometheus.remote_write.mimir.receiver]
+  scrape_interval = "15s"
 }

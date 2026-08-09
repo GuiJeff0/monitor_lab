@@ -27,16 +27,15 @@ flowchart TD
 
     subgraph Observabilidade["Plataforma de Observabilidade (Docker Network)"]
         Grafana["Grafana (Visualização)"]
-        Prometheus["Prometheus (Métricas)"]
+        Mimir["Mimir (Métricas)"]
         Loki["Loki (Logs)"]
         Tempo["Tempo (Traces Distribuídos)"]
-        Alloy["Grafana Alloy (Coletor Unificado)"]
-        Promtail["Promtail (Shipper de Logs)"]
+        Alloy["Grafana Alloy (Logs de Containers)"]
     end
 
     subgraph Apps["Futuros Microsserviços (APIs)"]
-        UsersAPI["users-api (FastAPI)"]
-        OrdersAPI["orders-api (FastAPI)"]
+        UsersAPI["users-api (FastAPI + OTel SDK)"]
+        OrdersAPI["orders-api (FastAPI + OTel SDK)"]
     end
 
     %% Conexões DNS
@@ -48,23 +47,23 @@ flowchart TD
     %% Conexões HTTP
     User -->|2. Requisição HTTP :80| Traefik
     Traefik -->|/grafana| Grafana
-    Traefik -->|/prometheus| Prometheus
+    Traefik -->|/mimir| Mimir
     Traefik -->|/loki| Loki
     Traefik -->|/tempo| Tempo
     Traefik -->|dns.monitor.lab| AdGuard
     Traefik -->|/api/v1/users| UsersAPI
     Traefik -->|/api/v1/orders| OrdersAPI
 
-    %% Telemetria das APIs
-    UsersAPI -->|Logs Stdout| Promtail
+    %% Telemetria das APIs (OpenTelemetry SDK)
+    UsersAPI -->|OTLP Metrics| Mimir
+    UsersAPI -->|OTLP Logs| Loki
     UsersAPI -->|Logs Stdout| Alloy
     UsersAPI -->|OTLP Traces :4317| Tempo
-    UsersAPI -->|Scrape /metrics| Prometheus
 
-    %% Integração de Dados
-    Promtail -->|Push Logs| Loki
-    Alloy -->|Push Logs| Loki
-    Grafana -->|Datasource| Prometheus
+    %% Integração de Dados & Infra
+    Alloy -->|Push Container Logs| Loki
+    Tempo -->|Metrics Generator Remote Write| Mimir
+    Grafana -->|Datasource| Mimir
     Grafana -->|Datasource| Loki
     Grafana -->|Datasource| Tempo
 ```
@@ -114,7 +113,7 @@ graph LR
 
     subgraph Routers["Routers (Regras de Entrada TLS)"]
         R_Grafana["Host: monitor.lab & Path: /grafana (TLS)"]
-        R_Prom["Host: monitor.lab & Path: /prometheus (TLS)"]
+        R_Mimir["Host: monitor.lab & Path: /mimir (TLS)"]
         R_Loki["Host: monitor.lab & Path: /loki (TLS)"]
         R_Tempo["Host: monitor.lab & Path: /tempo (TLS)"]
         R_DNS["Host: dns.monitor.lab (TLS)"]
@@ -123,7 +122,7 @@ graph LR
 
     subgraph Containers["Containers Backend (Rede Interna)"]
         C_Grafana["grafana:3000"]
-        C_Prom["prometheus:9090"]
+        C_Mimir["mimir:8080"]
         C_Loki["loki:3100"]
         C_Tempo["tempo:3200"]
         C_DNS["adguard:3000"]
@@ -132,7 +131,7 @@ graph LR
 
     E80 -->|Redirect 301| E443
     E443 --> R_Grafana --> C_Grafana
-    E443 --> R_Prom --> C_Prom
+    E443 --> R_Mimir --> C_Mimir
     E443 --> R_Loki --> C_Loki
     E443 --> R_Tempo --> C_Tempo
     E443 --> R_DNS --> C_DNS
@@ -141,28 +140,23 @@ graph LR
 
 ---
 
-## 4. Pipeline dos 3 Pilares da Observabilidade
+## 4. Pipeline dos 3 Pilares da Observabilidade com OpenTelemetry SDK
 
-Como os **Logs**, **Métricas** e **Traces** fluem das aplicações até o Grafana:
+Como os **Logs**, **Métricas** e **Traces** fluem das aplicações via OpenTelemetry SDK até o Grafana:
 
 ```mermaid
 flowchart LR
-    subgraph Aplicaçao["Aplicação (FastAPI / Microservice)"]
-        AppLog["Logs JSON (Stdout/Stderr)"]
-        AppMetric["Endpoint /metrics (PromQL)"]
-        AppTrace["OpenTelemetry Tracer (OTLP)"]
+    subgraph Aplicaçao["Aplicação (FastAPI + OpenTelemetry SDK)"]
+        AppLog["OTel Logger / Stdout"]
+        AppMetric["OTel Meter (OTLP Metrics)"]
+        AppTrace["OTel Tracer (OTLP Spans)"]
     end
 
-    subgraph Coleta["Coleta & Ingestão"]
-        Alloy["Grafana Alloy / Promtail"]
-        Prometheus["Prometheus (Scraper)"]
-        Tempo["Grafana Tempo (OTLP Engine)"]
-    end
-
-    subgraph Armazenamento["Armazenamento"]
+    subgraph Ingestao["Coleta & Ingestão"]
+        Alloy["Grafana Alloy (Container Logs)"]
+        MimirDB[("Mimir (TSDB Blocks)")]
         LokiDB[("Loki (TSDB Logs)")]
-        PromDB[("Prometheus TSDB")]
-        TempoDB[("Tempo Blocks Storage")]
+        TempoDB[("Tempo (Blocks Storage)")]
     end
 
     subgraph Painel["Visualização"]
@@ -170,13 +164,15 @@ flowchart LR
     end
 
     %% Pipeline Logs
-    AppLog -->|Docker Logs Driver| Alloy -->|Loki Push API| LokiDB -->|LogQL| Grafana
+    AppLog -->|Direct OTLP| LokiDB
+    AppLog -->|Docker Socket| Alloy -->|Loki Push API| LokiDB
+    LokiDB -->|LogQL| Grafana
 
     %% Pipeline Métricas
-    AppMetric <---|Scrape Intervinar 15s| Prometheus -->|Time-Series| PromDB -->|PromQL| Grafana
+    AppMetric -->|OTLP :8080 / Push| MimirDB -->|PromQL| Grafana
 
     %% Pipeline Traces
-    AppTrace -->|gRPC :4317 / HTTP :4318| Tempo -->|Trace Blocks| TempoDB -->|TraceQL| Grafana
+    AppTrace -->|OTLP gRPC :4317 / HTTP :4318| TempoDB -->|TraceQL| Grafana
 ```
 
 ---
@@ -188,10 +184,10 @@ Como as três pilares da observabilidade se conectam dentro da interface do Graf
 ```mermaid
 stateDiagram-v2
     [*] --> LogQuery: Busca Log no Loki (LogQL)
-    LogQuery --> TraceLink: Encontra "trace_id" no JSON Log
+    LogQuery --> TraceLink: Encontra "trace_id" no JSON/OTel Log
     TraceLink --> TempoView: Clica no link e abre o Trace no Tempo
     TempoView --> SpanDetails: Examina o Span e a Latência de cada microsserviço
-    TempoView --> MetricCorrelation: Visualiza Métricas (Taxa de Erros / Latência via Prometheus)
+    TempoView --> MetricCorrelation: Visualiza Métricas (Taxa de Erros / Latência via Mimir)
     MetricCorrelation --> [*]
 ```
 
@@ -208,7 +204,7 @@ sequenceDiagram
     participant Traefik as Traefik Gateway
     participant Users as Users API (FastAPI)
     participant Orders as Orders API (FastAPI)
-    participant OTEL as OpenTelemetry / Tempo
+    participant OTEL as OpenTelemetry (Tempo / Loki / Mimir)
 
     Client->>Traefik: GET /api/v1/users (Header: X-Correlation-ID: 550e8400...)
     Note over Traefik: Preserva X-Correlation-ID e gera/preserva W3C traceparent
@@ -224,8 +220,8 @@ sequenceDiagram
     Users-->>Traefik: 200 OK (X-Correlation-ID: 550e8400..., X-Trace-ID: 4bf92f...)
     Traefik-->>Client: 200 OK (X-Correlation-ID: 550e8400..., X-Trace-ID: 4bf92f...)
     
-    Users->>OTEL: Export Spans via OTLP :4317
-    Orders->>OTEL: Export Spans via OTLP :4317
+    Users->>OTEL: Export Telemetry (Traces -> Tempo, Logs -> Loki, Metrics -> Mimir)
+    Orders->>OTEL: Export Telemetry (Traces -> Tempo, Logs -> Loki, Metrics -> Mimir)
 ```
 
 ---
@@ -251,11 +247,10 @@ sequenceDiagram
 ├───────────┼───────────────────────────────┼─────────────────────────────┤
 │ traefik   │ observability-net             │ 80 / 8080                   │
 │ grafana   │ observability-net             │ 3000                        │
-│ prometheus│ observability-net             │ 9090                        │
+│ mimir     │ observability-net             │ 8080 / 9095                 │
 │ loki      │ observability-net             │ 3100                        │
 │ tempo     │ observability-net             │ 3200 / 4317 (gRPC) / 4318   │
 │ alloy     │ observability-net             │ 12345                       │
-│ promtail  │ observability-net             │ 9080                        │
 │ adguard   │ observability-net             │ 3000 (web) / 53 (dns)       │
 └───────────┴───────────────────────────────┴─────────────────────────────┘
 ```
