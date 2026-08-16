@@ -71,8 +71,8 @@ Production-grade, reusable observability infrastructure and high-concurrency tic
 |---|---|---|---|---|
 | **Traefik** | `v3.7` | Reverse Proxy / API Gateway / Router | `http://monitor.lab:8080/dashboard/` (BasicAuth)<br>`https://monitor.lab/` | `traefik:8080` (`traefik healthcheck`) |
 | **Grafana** | `13.1.1` | Unified Visualization & Dashboards | `https://monitor.lab/grafana` | `grafana:3000` (`curl http://localhost:3000/api/health`) |
-| **Mimir** | `2.15.0` | Scalable Time-Series Metrics TSDB | `https://monitor.lab/mimir` | `mimir:8080` (`/bin/mimir -version`) |
-| **Loki** | `3.7.4` | Structured Log Aggregator | `https://monitor.lab/loki` | `loki:3100` (`/usr/bin/loki --verify-config`) |
+| **Mimir** | `2.15.0` | Scalable Time-Series Metrics TSDB | `https://monitor.lab/mimir` | `mimir:8080` (`wget /ready`) |
+| **Loki** | `3.7.4` | Structured Log Aggregator | `https://monitor.lab/loki` | `loki:3100` (`loki -health`) |
 | **Grafana Alloy** | `v1.7.1` | Unified Telemetry Collector (Docker Logs) | Internal | `alloy:12345` (`/bin/alloy --version`) |
 | **Tempo** | `2.6.1` | Distributed Tracing Backend | `https://monitor.lab/tempo` | `tempo:3200`<br>`tempo:4317` (gRPC OTLP)<br>`tempo:4318` (HTTP OTLP) |
 | **AdGuard Home** | `v0.107.57` | Local DNS Server (Encrypted Upstream & DNS Rewrites) | `https://dns.monitor.lab/`<br>`192.168.0.7:53` | `adguard:3000` |
