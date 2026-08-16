@@ -99,10 +99,46 @@ No ecossistema Traefik + Docker, há duas vertentes:
 
 ## 8. Dashboard
 
-O Dashboard do Traefik fornece uma interface web interativa. É vital para debugar regras de roteamento. A tela exibe de forma clara e visual o estado de todos os Entrypoints, Routers, Middlewares, Services e eventuais erros de configuração TLS.
+O Dashboard do Traefik fornece uma interface web interativa para inspeção e depuração de regras de roteamento, exibindo o estado em tempo real de todos os Entrypoints, Routers, Middlewares, Services e certificados TLS.
 
-- **Acesso**: Geralmente exposto roteando o tráfego da porta `:8080` ou associando a um hostname seguro como `https://traefik.monitor.lab`.
-- **Segurança**: Sendo uma ferramenta administrativa, nunca deve ser exposta livremente. É altamente recomendado atrelar o acesso do Dashboard a um middleware de `BasicAuth` ou outro controle de acesso equivalente.
+### Configuração e Segurança
+
+- **Hostname**: `monitor.lab`
+- **Entrypoint**: `traefik` (porta `:8080`)
+- **Protocolo**: HTTP (`http://monitor.lab:8080/dashboard/`)
+- **Segurança**: O modo `api.insecure` está explicitamente **desabilitado** (`insecure: false` em `traefik/traefik.yml`). O acesso ao dashboard e à API interna (`api@internal`) é exposto exclusivamente através de um router protegido com o middleware **BasicAuth**.
+- **Autenticação**: Gerenciada pelo arquivo de configuração dinâmica `traefik/dynamic/dashboard.yml`.
+
+### Credenciais Padrão e Customização
+
+O ambiente local vem pré-configurado com as credenciais padrão de desenvolvimento:
+- **Usuário**: `admin`
+- **Senha**: `admin`
+
+Para alterar ou adicionar novos usuários, gere um novo hash htpasswd:
+```bash
+htpasswd -nb <usuario> <senha>
+```
+E adicione a linha resultante na lista `users` do middleware `dashboard-auth` em `traefik/dynamic/dashboard.yml`:
+
+```yaml
+http:
+  routers:
+    dashboard:
+      rule: "Host(`monitor.lab`) && (PathPrefix(`/api`) || PathPrefix(`/dashboard`))"
+      entryPoints:
+        - traefik
+      service: api@internal
+      middlewares:
+        - dashboard-auth
+
+  middlewares:
+    dashboard-auth:
+      basicAuth:
+        realm: "Traefik Dashboard"
+        users:
+          - "admin:$apr1$0ZD.qXtf$7HNOJuB5EOndJZhMsyyXm1"
+```
 
 ## 9. Integração com Microsserviços
 

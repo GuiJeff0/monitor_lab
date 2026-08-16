@@ -38,7 +38,7 @@ Todas as requisições web trafegam através do **Traefik** na porta `443` (HTTP
 | `https://monitor.lab/loki` | Grafana Loki | 3100 | Ingestão e consulta LogQL de logs |
 | `https://monitor.lab/tempo` | Grafana Tempo | 3200 | Backend de traces distribuídos TraceQL |
 | `https://dns.monitor.lab` | AdGuard Home | 3000 | Painel de controle e auditoria DNS |
-| `http://monitor.lab:8080/dashboard/` | Traefik | 8080 | Dashboard e status dos routers/serviços |
+| `http://monitor.lab:8080/dashboard/` | Traefik | 8080 | Dashboard e status dos routers/serviços (BasicAuth) |
 | `https://monitor.lab/api/v1/*` | FastAPI BFF | 8000 | API Gateway pública do Ticket Booking System |
 
 ---

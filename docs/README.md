@@ -1,7 +1,7 @@
 # 📚 Documentação — Observability Lab: High-Concurrency Ticket Booking System
 
 > **Índice Central de Documentação do Ecossistema**  
-> Guia completo de arquitetura, padrões, infraestrutura, modelagem de banco de dados e microsserviços para o laboratório de observabilidade e mensageria de alta concorrência.
+> Guia completo de arquitetura, padrões, infraestrutura, modelagem de banco de dados, frontend e microsserviços para o laboratório de observabilidade e mensageria de alta concorrência.
 
 ---
 
@@ -22,7 +22,16 @@
 
 ---
 
-## 📋 3. Padrões de Engenharia e Observabilidade
+## 🌐 3. Front-End (`ticket-web`)
+
+| Documento | Descrição |
+|---|---|
+| [Rotas, Telas e Funcionalidades](frontend/routes-and-features.md) | Mapeamento completo de rotas Next.js 15, wireframes do mapa de setores do estádio, checkout com timer regressivo de 10 min, QR Code de ingresso e integração OTel RUM |
+| [Diretrizes & Skills de Front-End](standards/frontend-skills.md) | Padrões de código, Next.js 15 App Router, TanStack Query, Zustand, injeção de Trace Context no navegador e Core Web Vitals |
+
+---
+
+## 📋 4. Padrões de Engenharia e Observabilidade
 
 | Documento | Descrição |
 |---|---|
@@ -34,7 +43,7 @@
 
 ---
 
-## 🏗️ 4. Componentes de Infraestrutura
+## 🏗️ 5. Componentes de Infraestrutura
 
 | Documento | Componente | Descrição |
 |---|---|---|
@@ -47,7 +56,7 @@
 
 ---
 
-## 🚀 5. Ecossistema de Microsserviços (8 Serviços)
+## 🚀 6. Ecossistema de Microsserviços (8 Serviços)
 
 | Documento | Serviço | Stack / Protocolo | Responsabilidades Principais |
 |---|---|---|---|
@@ -75,7 +84,11 @@ docs/
 ├── database/                            ← Modelagem e Diagramas ER
 │   └── database-diagrams.md
 │
+├── frontend/                            ← Especificações do Front-End (ticket-web)
+│   └── routes-and-features.md
+│
 ├── standards/                           ← Padrões de Engenharia e Telemetria
+│   ├── frontend-skills.md
 │   ├── observability-standard.md
 │   ├── best-practices.md
 │   ├── api-development-standards.md
