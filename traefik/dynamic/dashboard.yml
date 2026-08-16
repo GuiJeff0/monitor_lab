@@ -1,0 +1,16 @@
+http:
+  routers:
+    dashboard:
+      rule: "Host(`monitor.lab`) && (PathPrefix(`/api`) || PathPrefix(`/dashboard`))"
+      entryPoints:
+        - traefik
+      service: api@internal
+      middlewares:
+        - dashboard-auth
+
+  middlewares:
+    dashboard-auth:
+      basicAuth:
+        realm: "Traefik Dashboard"
+        users:
+          - "admin:$apr1$0ZD.qXtf$7HNOJuB5EOndJZhMsyyXm1"

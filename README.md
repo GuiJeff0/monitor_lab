@@ -69,7 +69,7 @@ Production-grade, reusable observability infrastructure and high-concurrency tic
 
 | Component | Version | Role | Host Route / Port | Internal Access / Healthcheck |
 |---|---|---|---|---|
-| **Traefik** | `v3.7` | Reverse Proxy / API Gateway / Router | `http://monitor.lab:8080/dashboard/`<br>`https://monitor.lab/` | `traefik:8080` (`traefik healthcheck`) |
+| **Traefik** | `v3.7` | Reverse Proxy / API Gateway / Router | `http://monitor.lab:8080/dashboard/` (BasicAuth)<br>`https://monitor.lab/` | `traefik:8080` (`traefik healthcheck`) |
 | **Grafana** | `13.1.1` | Unified Visualization & Dashboards | `https://monitor.lab/grafana` | `grafana:3000` (`curl http://localhost:3000/api/health`) |
 | **Mimir** | `2.15.0` | Scalable Time-Series Metrics TSDB | `https://monitor.lab/mimir` | `mimir:8080` (`/bin/mimir -version`) |
 | **Loki** | `3.7.4` | Structured Log Aggregator | `https://monitor.lab/loki` | `loki:3100` (`/usr/bin/loki --verify-config`) |

@@ -341,7 +341,7 @@ flowchart TB
 ├──────────┼──────────────────────────────────┼────────────────────────────────────┤
 │ :80      │ Traefik (web)                    │ HTTP → Redirect HTTPS              │
 │ :443     │ Traefik (websecure)              │ HTTPS (TLS Termination)            │
-│ :8080    │ Traefik Dashboard                │ HTTP (Dev only)                    │
+│ :8080    │ Traefik Dashboard                │ HTTP (BasicAuth required)          │
 │ :15672   │ RabbitMQ Management UI           │ HTTP (Dev only)                    │
 └──────────┴──────────────────────────────────┴────────────────────────────────────┘
 

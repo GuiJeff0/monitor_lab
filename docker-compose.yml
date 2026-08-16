@@ -35,11 +35,6 @@ services:
       interval: 10s
       timeout: 5s
       retries: 3
-    labels:
-      - "traefik.enable=true"
-      - "traefik.http.routers.dashboard.rule=Host(`localhost`) && (PathPrefix(`/api`) || PathPrefix(`/dashboard`))"
-      - "traefik.http.routers.dashboard.entrypoints=web"
-      - "traefik.http.routers.dashboard.service=api@internal"
 
   # Grafana - Dashboards & Visualization
   grafana:
