@@ -15449,24 +15449,30 @@
           "text": "Mimir",
           "value": "mimir"
         },
+        "hide": 0,
         "includeAll": false,
         "label": "Datasource",
+        "multi": false,
         "name": "ds_prometheus",
         "options": [],
         "query": "prometheus",
         "refresh": 1,
-        "regex": "mimir",
+        "regex": "",
+        "skipUrlSync": false,
         "type": "datasource"
       },
       {
+        "allValue": null,
         "current": {},
         "datasource": {
           "type": "prometheus",
           "uid": "mimir"
         },
-        "definition": "mimir",
+        "definition": "label_values(node_uname_info, job)",
+        "hide": 0,
         "includeAll": false,
         "label": "Job",
+        "multi": false,
         "name": "job",
         "options": [],
         "query": {
@@ -15474,47 +15480,56 @@
           "refId": "Prometheus-job-Variable-Query"
         },
         "refresh": 1,
-        "regex": "mimir",
+        "regex": "",
+        "skipUrlSync": false,
         "sort": 1,
         "type": "query"
       },
       {
+        "allValue": null,
         "current": {},
         "datasource": {
           "type": "prometheus",
           "uid": "mimir"
         },
-        "definition": "label_values(node_uname_info{job=\"$job\"}, nodename)",
+        "definition": "label_values(node_uname_info{job=~\"\"}, nodename)",
+        "hide": 0,
         "includeAll": false,
         "label": "Nodename",
+        "multi": false,
         "name": "nodename",
         "options": [],
         "query": {
-          "query": "label_values(node_uname_info{job=\"$job\"}, nodename)",
+          "query": "label_values(node_uname_info{job=~\"\"}, nodename)",
           "refId": "Prometheus-nodename-Variable-Query"
         },
         "refresh": 1,
-        "regex": "mimir",
+        "regex": "",
+        "skipUrlSync": false,
         "sort": 1,
         "type": "query"
       },
       {
+        "allValue": null,
         "current": {},
         "datasource": {
           "type": "prometheus",
           "uid": "mimir"
         },
-        "definition": "label_values(node_uname_info{job=\"$job\", nodename=\"$nodename\"}, instance)",
+        "definition": "label_values(node_uname_info{job=~\"\", nodename=~\"\"}, instance)",
+        "hide": 0,
         "includeAll": false,
         "label": "Instance",
+        "multi": false,
         "name": "node",
         "options": [],
         "query": {
-          "query": "label_values(node_uname_info{job=\"$job\", nodename=\"$nodename\"}, instance)",
+          "query": "label_values(node_uname_info{job=~\"\", nodename=~\"\"}, instance)",
           "refId": "Prometheus-node-Variable-Query"
         },
         "refresh": 1,
-        "regex": "mimir",
+        "regex": "",
+        "skipUrlSync": false,
         "sort": 1,
         "type": "query"
       }
