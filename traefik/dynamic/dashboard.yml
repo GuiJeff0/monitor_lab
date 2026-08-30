@@ -1,7 +1,7 @@
 http:
   routers:
     dashboard:
-      rule: "Host(`monitor.lab`) && (PathPrefix(`/api`) || PathPrefix(`/dashboard`))"
+      rule: "PathPrefix(`/api`) || PathPrefix(`/dashboard`)"
       entryPoints:
         - traefik
       service: api@internal

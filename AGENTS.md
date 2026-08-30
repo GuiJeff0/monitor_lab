@@ -26,9 +26,10 @@ As aplicações são desenvolvidas em **repositórios independentes** simulando 
 # Arquitetura Geral
 
 ```text
-                                  Clientes (Web / Mobile)
+                          Clientes (Web / Mobile / Tailscale Peers)
                                              │
-                                       HTTPS (TLS)
+                                  HTTP (80) / HTTPS (443)
+                                    via Tailscale Mesh
                                              │
                                              ▼
                                   ┌────────────────────┐
@@ -87,9 +88,13 @@ As aplicações são desenvolvidas em **repositórios independentes** simulando 
 # Tecnologias
 
 ## Infraestrutura & Plataforma
-- **Docker & Docker Compose:** Orquestração de containers, volumes e redes dedicadas.
-- **Traefik v3:** Reverse Proxy, API Gateway, terminação TLS local (mkcert) e roteamento.
-- **AdGuard Home:** Servidor DNS local (`monitor.lab`) com DoH/DoT upstream.
+- **Docker & Docker Compose:** Orquestração de containers, bind mounts com `DATA_DIR` e redes dedicadas.
+- **Topologia de Armazenamento do Servidor (`creedx66`):**
+  - **SSD NVMe (`/dev/nvme0n1`, ~120GB, montado em `/`):** Exclusivo para Sistema Operacional, binários do APT e configs. **Protegido contra I/O pesado.**
+  - **HDD SATA (`/dev/sda1`, 1TB, montado em `/mnt/dados/`):** Repositório de dados persistentes massivos e volumes de containers (Mimir TSDB, Loki logs, Tempo traces, Postgres, MongoDB, Elasticsearch).
+  - **Variável `DATA_DIR`:** Controla o destino da persistência (`./data` no ambiente local de dev, `/mnt/dados/observability` no servidor `creedx66`).
+- **Tailscale:** Rede VPN mesh segura com WireGuard e MagicDNS (`<node-name>.<tailnet>.ts.net`).
+- **Traefik v3:** Reverse Proxy, API Gateway, roteamento por PathPrefix e Service Discovery.
 - **RabbitMQ:** Broker AMQP para absorção de carga e mensageria assíncrona.
 - **Redis:** Caching de alto desempenho e rate limiting.
 
@@ -181,7 +186,7 @@ Toda a telemetria gerada nos serviços segue os padrões rigorosos de observabil
 
 ```text
 observability-lab/
-├── docker-compose.yml              # Orquestração de Traefik, Grafana, Mimir, Loki, Tempo, Alloy, AdGuard
+├── docker-compose.yml              # Orquestração de Traefik, Grafana, Mimir, Loki, Tempo, Alloy
 ├── .env                            # Versões de imagens e variáveis de ambiente globais
 │
 ├── traefik/                        # Configurações do Proxy Reverso
@@ -233,9 +238,10 @@ observability-lab/
 
 ## Fase 1 — Fundação de Infraestrutura & Observabilidade
 - [x] Docker Compose e Redes Isoladas
-- [x] Traefik v3 com Terminação TLS e DNS AdGuard Home
+- [x] Traefik v3 Reverse Proxy & Roteamento via Tailscale
 - [x] Stack Grafana (Grafana, Mimir, Loki, Tempo, Alloy)
 - [x] Correlação Cruzada de Telemetria (Logs ↔ Traces ↔ Métricas)
+- [x] Monitoramento de Recursos da Máquina Host (Node Exporter) e Containers (cAdvisor) via Alloy
 
 ## Fase 2 — Message Broker & Persistência Poliglota
 - [ ] Subida do cluster RabbitMQ (com UI de Management)

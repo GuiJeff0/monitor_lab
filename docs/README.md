@@ -39,7 +39,6 @@
 | [Guia de Boas Práticas](standards/best-practices.md) | Docker, Concorrência, Transações ACID, Segurança, JWT, Testes e Operational Runbook |
 | [Padrão de Desenvolvimento de Microsserviços](standards/api-development-standards.md) | Padrões Clean Architecture para Python (FastAPI BFF) e Golang (gRPC), contratos e validações |
 | [Padrão de Tracing Distribuído](standards/distributed-tracing-standard.md) | W3C Trace Context (`traceparent`), Correlation ID (`X-Correlation-ID`) e propagação em HTTP, gRPC e AMQP |
-| [Padrão de DNS Local](standards/local-dns-standard.md) | AdGuard Home, resolução `*.monitor.lab`, certificados TLS locais e integração com `systemd-resolved` |
 
 ---
 
@@ -92,8 +91,7 @@ docs/
 │   ├── observability-standard.md
 │   ├── best-practices.md
 │   ├── api-development-standards.md
-│   ├── distributed-tracing-standard.md
-│   └── local-dns-standard.md
+│   └── distributed-tracing-standard.md
 │
 ├── infrastructure/                      ← Documentação dos Componentes de Infra
 │   ├── traefik.md
