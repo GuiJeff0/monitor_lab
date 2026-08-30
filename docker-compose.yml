@@ -30,9 +30,10 @@ services:
 
   # Grafana - Dashboards & Visualization
   grafana:
-    image: grafana/grafana:${GRAFANA_VERSION:-13.1.1}
+    image: grafana/grafana:${GRAFANA_VERSION:-11.5.2}
     container_name: grafana
     restart: unless-stopped
+    user: root
     environment:
       - GF_SECURITY_ADMIN_USER=${GF_SECURITY_ADMIN_USER:-admin}
       - GF_SECURITY_ADMIN_PASSWORD=${GF_SECURITY_ADMIN_PASSWORD:-admin}
@@ -42,7 +43,7 @@ services:
       - GF_USERS_ALLOW_SIGN_UP=false
     volumes:
       - ./grafana/provisioning:/etc/grafana/provisioning:ro
-      - ./grafana/dashboards:/var/lib/grafana/dashboards:ro
+      - ./grafana/dashboards:/etc/grafana/dashboards:ro
       - ${DATA_DIR:-./data}/grafana:/var/lib/grafana
     networks:
       - observability-net
@@ -66,6 +67,7 @@ services:
     image: grafana/mimir-alpine:${MIMIR_VERSION:-2.15.0}
     container_name: mimir
     restart: unless-stopped
+    user: root
     command: "-config.file=/etc/mimir/mimir.yml"
     volumes:
       - ./mimir/mimir.yml:/etc/mimir/mimir.yml:ro
@@ -116,8 +118,10 @@ services:
   alloy:
     image: grafana/alloy:${ALLOY_VERSION:-v1.7.1}
     container_name: alloy
+    hostname: ${HOSTNAME:-creedx66}
     restart: unless-stopped
     privileged: true
+    cgroup: host
     command:
       - run
       - --server.http.listen-addr=0.0.0.0:12345
@@ -125,9 +129,10 @@ services:
     volumes:
       - ./alloy/config.alloy:/etc/alloy/config.alloy:ro
       - /var/run/docker.sock:/var/run/docker.sock:ro
-      - /var/lib/docker/containers:/var/lib/docker/containers:ro
+      - /var/lib/docker:/var/lib/docker:ro
       - /proc:/host/proc:ro
       - /sys:/host/sys:ro
+      - /sys/fs/cgroup:/sys/fs/cgroup:ro
       - /:/host/rootfs:ro
     networks:
       - observability-net

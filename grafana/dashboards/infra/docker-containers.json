@@ -27,7 +27,7 @@
     {
       "datasource": {
         "type": "prometheus",
-        "uid": "prometheus"
+        "uid": "mimir"
       },
       "fieldConfig": {
         "defaults": {
@@ -80,7 +80,7 @@
           "calcs": [
             "mean"
           ],
-          "fields": "mimir",
+          "fields": "",
           "values": false
         },
         "textMode": "auto"
@@ -90,11 +90,11 @@
         {
           "datasource": {
             "type": "prometheus",
-            "uid": "prometheus"
+            "uid": "mimir"
           },
           "expr": "count(container_last_seen{image!=\"\"})",
           "intervalFactor": 2,
-          "legendFormat": "mimir",
+          "legendFormat": "",
           "metric": "container_last_seen",
           "refId": "A",
           "step": 240
@@ -107,7 +107,7 @@
     {
       "datasource": {
         "type": "prometheus",
-        "uid": "prometheus"
+        "uid": "mimir"
       },
       "fieldConfig": {
         "defaults": {
@@ -160,7 +160,7 @@
           "calcs": [
             "lastNotNull"
           ],
-          "fields": "mimir",
+          "fields": "",
           "values": false
         },
         "textMode": "auto"
@@ -170,11 +170,11 @@
         {
           "datasource": {
             "type": "prometheus",
-            "uid": "prometheus"
+            "uid": "mimir"
           },
           "expr": "sum(container_memory_usage_bytes{image!=\"\"})/1024/1024",
           "intervalFactor": 2,
-          "legendFormat": "mimir",
+          "legendFormat": "",
           "metric": "container_memory_usage_bytes",
           "refId": "A",
           "step": 240
@@ -187,7 +187,7 @@
     {
       "datasource": {
         "type": "prometheus",
-        "uid": "prometheus"
+        "uid": "mimir"
       },
       "fieldConfig": {
         "defaults": {
@@ -240,7 +240,7 @@
           "calcs": [
             "lastNotNull"
           ],
-          "fields": "mimir",
+          "fields": "",
           "values": false
         },
         "textMode": "auto"
@@ -250,11 +250,11 @@
         {
           "datasource": {
             "type": "prometheus",
-            "uid": "prometheus"
+            "uid": "mimir"
           },
           "expr": "sum(rate(container_cpu_user_seconds_total{image!=\"\"}[5m]) * 100)",
           "intervalFactor": 2,
-          "legendFormat": "mimir",
+          "legendFormat": "",
           "metric": "container_memory_usage_bytes",
           "refId": "A",
           "step": 240
@@ -271,7 +271,7 @@
       "dashes": false,
       "datasource": {
         "type": "prometheus",
-        "uid": "prometheus"
+        "uid": "mimir"
       },
       "decimals": 2,
       "editable": true,
@@ -318,7 +318,7 @@
         {
           "datasource": {
             "type": "prometheus",
-            "uid": "prometheus"
+            "uid": "mimir"
           },
           "expr": "rate(container_cpu_user_seconds_total{image!=\"\"}[5m]) * 100",
           "intervalFactor": 2,
@@ -366,7 +366,7 @@
       "dashes": false,
       "datasource": {
         "type": "prometheus",
-        "uid": "prometheus"
+        "uid": "mimir"
       },
       "decimals": 2,
       "editable": true,
@@ -413,7 +413,7 @@
         {
           "datasource": {
             "type": "prometheus",
-            "uid": "prometheus"
+            "uid": "mimir"
           },
           "expr": "container_memory_usage_bytes{image!=\"\"}",
           "hide": false,
@@ -442,7 +442,7 @@
       "yaxes": [
         {
           "format": "bytes",
-          "label": "mimir",
+          "label": "",
           "logBase": 1,
           "show": true
         },
@@ -463,7 +463,7 @@
       "dashes": false,
       "datasource": {
         "type": "prometheus",
-        "uid": "prometheus"
+        "uid": "mimir"
       },
       "editable": true,
       "error": false,
@@ -507,7 +507,7 @@
         {
           "datasource": {
             "type": "prometheus",
-            "uid": "prometheus"
+            "uid": "mimir"
           },
           "expr": "irate(container_network_receive_bytes_total{image!=\"\"}[5m])",
           "intervalFactor": 2,
@@ -555,7 +555,7 @@
       "dashes": false,
       "datasource": {
         "type": "prometheus",
-        "uid": "prometheus"
+        "uid": "mimir"
       },
       "editable": true,
       "error": false,
@@ -599,7 +599,7 @@
         {
           "datasource": {
             "type": "prometheus",
-            "uid": "prometheus"
+            "uid": "mimir"
           },
           "expr": "irate(container_network_transmit_bytes_total{image!=\"\"}[5m])",
           "intervalFactor": 2,
@@ -682,5 +682,5 @@
   "title": "Docker Containers (cAdvisor)",
   "uid": "ee75b6b8-f1c6-4ef1-9d39-fe50cc55a274",
   "version": 1,
-  "weekStart": "mimir"
+  "weekStart": ""
 }

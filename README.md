@@ -71,7 +71,7 @@ Production-grade, reusable observability infrastructure and high-concurrency tic
 | Component | Version | Role | Host Route / Port | Internal Access / Healthcheck |
 |---|---|---|---|---|
 | **Traefik** | `v3.7` | Reverse Proxy / API Gateway / Router | `http://<tailscale-host>:8080/dashboard/` (BasicAuth)<br>`http://<tailscale-host>/` | `traefik:8080` (`traefik healthcheck`) |
-| **Grafana** | `13.1.1` | Unified Visualization & Dashboards | `http://<tailscale-host>/grafana` | `grafana:3000` (`curl http://localhost:3000/api/health`) |
+| **Grafana** | `11.5.2` | Unified Visualization & Dashboards | `http://<tailscale-host>/grafana` | `grafana:3000` (`curl http://localhost:3000/api/health`) |
 | **Mimir** | `2.15.0` | Scalable Time-Series Metrics TSDB | `http://<tailscale-host>/mimir` | `mimir:8080` (`wget /ready`) |
 | **Loki** | `3.7.4` | Structured Log Aggregator | `http://<tailscale-host>/loki` | `loki:3100` (`loki -health`) |
 | **Grafana Alloy** | `v1.7.1` | Unified Telemetry Collector (Docker Logs, Host Metrics, Container Metrics) | Internal | `alloy:12345` (`/bin/alloy --version`) |
