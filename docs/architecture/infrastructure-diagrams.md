@@ -9,18 +9,17 @@
 
 ```mermaid
 flowchart TD
-    subgraph Clients["Clientes & Desenvolvedores"]
+    subgraph Clients["Clientes & Desenvolvedores (Rede Tailscale)"]
         Browser["Navegador / App Mobile / k6 Test Client"]
     end
 
-    subgraph DNSLayer["Camada de Resolução DNS"]
-        SysResolved["systemd-resolved (127.0.0.53:53)"]
-        AdGuard["AdGuard Home (192.168.0.7:53)"]
-        DoH["Upstream DoH (Cloudflare / Quad9)"]
+    subgraph VPNLayer["Rede Mesh Segura"]
+        Tailscale["Tailscale VPN (WireGuard E2E Encryption)
+        Host: <node-name>.<tailnet>.ts.net (100.x.y.z)"]
     end
 
     subgraph EdgeLayer["Ingress & Gateway"]
-        Traefik["Traefik v3 Proxy (:80 -> :443 TLS, :8080 Dashboard)"]
+        Traefik["Traefik v3 Proxy (:80 HTTP / :443 HTTPS / :8080 Dashboard)"]
     end
 
     subgraph BFFLayer["Camada BFF"]
@@ -59,10 +58,8 @@ flowchart TD
         Grafana["Grafana Unified Dashboards"]
     end
 
-    %% Conexões DNS & HTTP
-    Browser --> SysResolved --> AdGuard --> Traefik
-    AdGuard --> DoH
-    Browser -->|HTTPS| Traefik
+    %% Conexões de Rede
+    Browser -->|WireGuard Tunnel| Tailscale --> Traefik
     Traefik -->|/api/v1/*| BFF
     Traefik -->|/grafana| Grafana
     Traefik -->|/mimir| Mimir
@@ -95,50 +92,43 @@ flowchart TD
 
 ---
 
-## 2. Fluxo da Camada de DNS (Coexistência na Porta 53)
+## 2. Fluxo de Acesso Remoto e Criptografia via Tailscale
 
 ```mermaid
 sequenceDiagram
     autonumber
-    actor Dev as Desenvolvedor / App
-    participant SR as systemd-resolved (127.0.0.53:53)
-    participant AG as AdGuard Home (192.168.0.7:53)
-    participant Upstream as Cloudflare / Quad9 (DoH)
-    participant Traefik as Traefik Gateway (192.168.0.7:443)
+    actor Dev as Desenvolvedor / Navegador
+    participant TS as Tailscale MagicDNS / VPN (100.x.y.z)
+    participant Traefik as Traefik Gateway (:80 / :8080)
+    participant Grafana as Grafana Dashboard (:3000)
 
-    Dev->>SR: Consulta DNS ("monitor.lab")
-    SR->>AG: Encaminha consulta para 192.168.0.7:53
-    alt É domínio do laboratório (*.monitor.lab)
-        AG-->>SR: Resposta Local: 192.168.0.7 (DNS Rewrite)
-        SR-->>Dev: Retorna 192.168.0.7
-        Dev->>Traefik: Conecta via HTTPS com certificado mkcert
-    else É domínio público (ex: github.com)
-        AG->>Upstream: Consulta via DNS-over-HTTPS (Criptografado)
-        Upstream-->>AG: Resposta IP Público
-        AG-->>SR: Retorna IP Público
-        SR-->>Dev: Retorna IP Público
-    end
+    Dev->>TS: Acessa "http://<node-name>.<tailnet>.ts.net/grafana"
+    Note over Dev,TS: Túnel ponto a ponto criptografado (WireGuard)
+    TS->>Traefik: Repassa requisição HTTP na porta 80
+    Traefik->>Grafana: Roteia PathPrefix(`/grafana`) para porta 3000
+    Grafana-->>Traefik: Resposta HTML / Dashboard
+    Traefik-->>Dev: Retorna conteúdo através do túnel Tailscale
 ```
 
 ---
 
-## 3. Roteamento do Traefik v3 (TLS & Middlewares)
+## 3. Roteamento do Traefik v3 (PathPrefix & Middlewares)
 
 ```mermaid
 graph LR
     subgraph Entrada["Entrypoints"]
-        E80["HTTP :80 (web -> Redirect 301)"]
-        E443["HTTPS :443 (websecure - TLS Terminated)"]
+        E80["HTTP :80 (web)"]
+        E443["HTTPS :443 (websecure)"]
         E8080["HTTP :8080 (traefik dashboard)"]
     end
 
-    subgraph Routers["Routers TLS"]
-        R_API["Host: monitor.lab & PathPrefix: /api"]
-        R_Grafana["Host: monitor.lab & PathPrefix: /grafana"]
-        R_Mimir["Host: monitor.lab & PathPrefix: /mimir"]
-        R_Loki["Host: monitor.lab & PathPrefix: /loki"]
-        R_Tempo["Host: monitor.lab & PathPrefix: /tempo"]
-        R_DNS["Host: dns.monitor.lab"]
+    subgraph Routers["Routers PathPrefix"]
+        R_API["PathPrefix: /api/v1"]
+        R_Grafana["PathPrefix: /grafana"]
+        R_Mimir["PathPrefix: /mimir"]
+        R_Loki["PathPrefix: /loki"]
+        R_Tempo["PathPrefix: /tempo"]
+        R_Dash["PathPrefix: /dashboard"]
     end
 
     subgraph Services["Backends na Rede observability-net"]
@@ -147,17 +137,16 @@ graph LR
         C_Mimir["mimir:8080"]
         C_Loki["loki:3100"]
         C_Tempo["tempo:3200"]
-        C_AdGuard["adguard:3000"]
+        C_Traefik["traefik:internal"]
     end
 
-    E80 -->|Redirect| E443
-    E443 --> R_API --> C_BFF
-    E443 --> R_Grafana --> C_Grafana
-    E443 --> R_Mimir --> C_Mimir
-    E443 --> R_Loki --> C_Loki
-    E443 --> R_Tempo --> C_Tempo
-    E443 --> R_DNS --> C_AdGuard
-```
+    E80 --> R_API --> C_BFF
+    E80 --> R_Grafana --> C_Grafana
+    E80 --> R_Mimir --> C_Mimir
+    E80 --> R_Loki --> C_Loki
+    E80 --> R_Tempo --> C_Tempo
+    E443 -.-> R_Grafana
+    E8080 --> R_Dash --> C_Traefik
 
 ---
 

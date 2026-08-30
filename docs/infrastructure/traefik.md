@@ -26,8 +26,8 @@ A configuração estática é definida primariamente no arquivo `traefik.yml` e 
 ### Entrypoints
 
 Os *Entrypoints* definem as portas de rede onde o Traefik escutará as requisições recebidas.
-- **web**: Escuta na porta `80` (HTTP). No nosso ambiente, está configurado para redirecionar automaticamente todo o tráfego para a porta segura (HTTPS).
-- **websecure**: Escuta na porta `443` (HTTPS). Este é o ponto de entrada principal para tráfego seguro de clientes.
+- **web**: Escuta na porta `80` (HTTP). Ponto de entrada padrão para o tráfego da rede Tailscale.
+- **websecure**: Escuta na porta `443` (HTTPS). Ponto de entrada seguro.
 - **traefik**: Escuta na porta `8080`. Reservado para o acesso ao *Dashboard* interno e à API de métricas do próprio Traefik.
 
 Exemplo de configuração estática (`traefik.yml`):
@@ -35,11 +35,6 @@ Exemplo de configuração estática (`traefik.yml`):
 entryPoints:
   web:
     address: ":80"
-    http:
-      redirections:
-        entryPoint:
-          to: websecure
-          scheme: https
   websecure:
     address: ":443"
   traefik:
@@ -52,27 +47,36 @@ O Traefik utiliza um sistema de roteamento inteligente e flexível baseado em *R
 
 ```mermaid
 flowchart LR
-    Request[Request HTTP] --> Entrypoint[Entrypoint :443]
+    Request[Request HTTP/HTTPS] --> Entrypoint[Entrypoint :80 / :443]
     Entrypoint --> Router[Router]
-    Router -- Regras (Host, Path) --> Middleware[Middleware]
+    Router -- Regras (PathPrefix) --> Middleware[Middleware]
     Middleware -- Transformação --> Service[Service]
     Service -- Load Balancing --> Container[Container Docker]
 ```
 
-- **Routers**: Analisam a requisição (baseado em critérios como Host, Path, Headers) e decidem para qual serviço a requisição deve ser encaminhada.
+- **Routers**: Analisam a requisição (baseado em critérios como PathPrefix, Headers) e decidem para qual serviço a requisição deve ser encaminhada.
 - **Middlewares**: Permitem interceptar e processar a requisição antes de repassá-la ao serviço (ex: modificar headers, rate limiting, strip prefix).
 - **Services**: Recebem as requisições do Router e as repassam para o(s) container(s) de destino final. Caso haja múltiplas instâncias de um serviço, o Service lida automaticamente com o balanceamento de carga (Load Balancing).
 
-## 4. TLS (Terminação TLS)
+## 4. Segurança e TLS no Ambiente Tailscale
 
-O laboratório de observabilidade exige comunicação segura HTTPS. Toda a terminação TLS é feita pelo Traefik, simplificando a configuração dos microsserviços.
+No ambiente com Tailscale VPN, todo o tráfego que trafega entre os nós da rede mesh é **automaticamente criptografado de ponta a ponta via WireGuard**, tornando o acesso via HTTP (`http://<node-name>.<tailnet>.ts.net`) 100% seguro contra interceptação de rede.
 
-### Local CA e Certificados
-Para o ambiente local `monitor.lab`, utilizamos uma Certificate Authority (CA) criada com ferramentas como o `mkcert`.
-Os certificados gerados são informados ao Traefik por meio de uma configuração dinâmica (via arquivo YAML). O Traefik então utiliza esses certificados (par de chaves e certificado) para servir conexões criptografadas em qualquer host pertencente ao domínio `*.monitor.lab`.
+### Opções para HTTPS (TLS) com Tailscale
 
-### HTTPS Redirect
-Para reforçar a segurança e garantir a padronização, o entrypoint `web` (porta 80) redireciona todo o tráfego de entrada para o entrypoint `websecure` (porta 443) com um código HTTP 301 (Moved Permanently).
+Caso deseje ter o "cadeado verde" (HTTPS) no navegador para o domínio Tailscale:
+
+1. **Tailscale Serve (Recomendado):** O próprio daemon do Tailscale no servidor obtém e renova certificados Let's Encrypt automaticamente para `*.ts.net`. Basta rodar no host:
+   ```bash
+   tailscale serve --bg 80
+   ```
+   Isso expõe `https://<node-name>.<tailnet>.ts.net` na porta 443 do Tailscale e repassa o tráfego para a porta 80 do Traefik de forma transparente.
+
+2. **Tailscale Cert no Traefik:** Gerar o par de chaves com:
+   ```bash
+   tailscale cert <node-name>.<tailnet>.ts.net
+   ```
+   Mover os arquivos para `traefik/certificates/` e habilitar no `traefik/dynamic/tls.yml`.
 
 ## 5. Service Discovery
 
@@ -85,27 +89,26 @@ Sempre que um novo container sobe, o Traefik inspeciona as suas *labels*. Se as 
 
 Os Middlewares no Traefik manipulam a requisição ou a resposta. Exemplos aplicáveis no laboratório:
 
-- **StripPrefix**: Remove uma parte da URL original antes de rotear a requisição. Ex: A requisição chega no gateway como `/api/v1/users`, mas o middleware remove `/api/v1` para que a aplicação final veja apenas `/users`.
+- **StripPrefix**: Remove uma parte da URL original antes de rotear a requisição. Ex: A requisição chega no gateway como `/mimir/...`, mas o middleware remove `/mimir` para que a aplicação final receba a rota raiz.
 - **Headers**: Usado para injetar ou remover cabeçalhos HTTP. Pode ser utilizado para adicionar cabeçalhos de segurança estritos (HSTS, CORS, etc).
-- **RateLimiting**: Limita a taxa de requisições por IP, garantindo que nenhum serviço interno sofra ataques de negação de serviço ou uso excessivo acidental.
+- **RateLimiting**: Limita a taxa de requisições por IP, garantindo que nenhum serviço interno sofra sobrecarga.
 - **BasicAuth**: Requer autenticação do tipo HTTP Basic antes de dar continuidade à requisição. É uma forma simples de proteger rotas internas críticas, como dashboards.
 
 ## 7. Health Checks
 
 Para evitar encaminhar tráfego para instâncias não saudáveis, o sistema de roteamento confia em *Health Checks*. 
-No ecossistema Traefik + Docker, há duas vertentes:
+No ecossistema Traefik + Docker:
 1. **Container Health Checks (Docker)**: O Docker realiza a checagem do container. Quando configurado corretamente, o Traefik apenas envia tráfego para containers classificados como "healthy".
-2. **Traefik Health Probes**: Opcionalmente, pode-se configurar o Traefik para bater num endpoint de health check do container. Se a aplicação não responder com sucesso (ex: falha de conexão ou status HTTP 500), o nó correspondente é temporariamente removido do pool de balanceamento de carga do Traefik.
+2. **Traefik Health Probes**: Opcionalmente, pode-se configurar o Traefik para bater num endpoint de health check do container.
 
 ## 8. Dashboard
 
-O Dashboard do Traefik fornece uma interface web interativa para inspeção e depuração de regras de roteamento, exibindo o estado em tempo real de todos os Entrypoints, Routers, Middlewares, Services e certificados TLS.
+O Dashboard do Traefik fornece uma interface web interativa para inspeção e depuração de regras de roteamento, exibindo o estado em tempo real de todos os Entrypoints, Routers, Middlewares e Services.
 
-### Configuração e Segurança
+### Configuração e Acesso
 
-- **Hostname**: `monitor.lab`
 - **Entrypoint**: `traefik` (porta `:8080`)
-- **Protocolo**: HTTP (`http://monitor.lab:8080/dashboard/`)
+- **URL**: `http://<tailscale-host>:8080/dashboard/` (ex: `http://homelab.tailxxxx.ts.net:8080/dashboard/` ou `http://100.x.y.z:8080/dashboard/`)
 - **Segurança**: O modo `api.insecure` está explicitamente **desabilitado** (`insecure: false` em `traefik/traefik.yml`). O acesso ao dashboard e à API interna (`api@internal`) é exposto exclusivamente através de um router protegido com o middleware **BasicAuth**.
 - **Autenticação**: Gerenciada pelo arquivo de configuração dinâmica `traefik/dynamic/dashboard.yml`.
 
@@ -125,7 +128,7 @@ E adicione a linha resultante na lista `users` do middleware `dashboard-auth` em
 http:
   routers:
     dashboard:
-      rule: "Host(`monitor.lab`) && (PathPrefix(`/api`) || PathPrefix(`/dashboard`))"
+      rule: "PathPrefix(`/api`) || PathPrefix(`/dashboard`)"
       entryPoints:
         - traefik
       service: api@internal
@@ -142,25 +145,23 @@ http:
 
 ## 9. Integração com Microsserviços
 
-Adicionar uma nova API no cluster (como a `users-api`) é tão simples quanto prover as tags no seu manifesto `docker-compose.yml`. Não há intervenção manual no proxy.
+Adicionar uma nova API no cluster (como a `users-api` ou `fastapi-bff`) é tão simples quanto prover as tags no seu manifesto `docker-compose.yml`:
 
-Exemplo de inserção para uma nova API:
 ```yaml
 services:
   users-api:
     image: lab/users-api:latest
     labels:
       - "traefik.enable=true"
-      - "traefik.http.routers.users.rule=Host(`monitor.lab`) && PathPrefix(`/users`)"
-      - "traefik.http.routers.users.entrypoints=websecure"
-      - "traefik.http.routers.users.tls=true"
+      - "traefik.http.routers.users.rule=PathPrefix(`/users`)"
+      - "traefik.http.routers.users.entrypoints=web,websecure"
       - "traefik.http.services.users.loadbalancer.server.port=8000"
 ```
-Quando o container é iniciado, a rota `https://monitor.lab/users` é dinamicamente criada e repassada para a porta interna 8000 do container.
+Quando o container é iniciado, a rota `/users` é dinamicamente criada e repassada para a porta interna 8000 do container.
 
 ## 10. Métricas
 
-Visibilidade de borda é crucial. O Traefik é capaz de expor métricas internas cruciais como contagem de requisições totais, tempos de resposta de roteamento e taxas de erro diretamente no formato do Prometheus.
+Visibilidade de borda é crucial. O Traefik expõe métricas internas como contagem de requisições totais, tempos de resposta de roteamento e taxas de erro diretamente no formato Prometheus.
 
 No arquivo `traefik.yml`, habilitamos o módulo de métricas:
 ```yaml
@@ -170,12 +171,11 @@ metrics:
     addRoutersLabels: true
     addServicesLabels: true
 ```
-Isso disponibiliza as métricas no endpoint `/metrics` do entrypoint interno (geralmente `:8080/metrics`). No nosso laboratório, ferramentas como o **Grafana Alloy** ou **Grafana Mimir** estão configuradas para raspar (scrape) essas métricas periodicamente, compondo assim os dashboards de saúde do proxy na interface do Grafana.
+O **Grafana Alloy** raspa essas métricas periodicamente via `traefik:8080/metrics` e envia para o Grafana Mimir.
 
 ## 11. Troubleshooting
 
 Problemas frequentes de roteamento e soluções:
 
-- **Erro 404 Not Found**: Significa que o Traefik não encontrou nenhuma regra de Router aplicável à requisição (Host/Path não bate). Verifique a sintaxe da label `traefik.http.routers.<nome>.rule`.
-- **Erro 502 Bad Gateway**: O Router existe, mas o Traefik não consegue se comunicar com o container de destino. Geralmente ocorre se o port setado em `loadbalancer.server.port` estiver incorreto ou o container não estiver ligado na rede Docker correta (ex: `monitor_net`).
-- **TLS Handshake Error / Aviso de site inseguro no browser**: Indica problema no certificado. Verifique as configurações do arquivo de provedor dinâmico de TLS. Verifique se a CA (mkcert) está confiável no sistema hospedeiro ou no navegador do cliente.
+- **Erro 404 Not Found**: Significa que o Traefik não encontrou nenhuma regra de Router aplicável à requisição (PathPrefix não bate). Verifique a sintaxe da label `traefik.http.routers.<nome>.rule`.
+- **Erro 502 Bad Gateway**: O Router existe, mas o Traefik não consegue se comunicar com o container de destino. Geralmente ocorre se o port setado em `loadbalancer.server.port` estiver incorreto ou o container não estiver ligado na rede Docker correta (`observability-net`).

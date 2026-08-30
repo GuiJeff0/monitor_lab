@@ -5,14 +5,6 @@ networks:
     driver: bridge
     name: ${DOCKER_NETWORK:-observability-net}
 
-volumes:
-  grafana-data:
-  mimir-data:
-  loki-data:
-  tempo-data:
-  adguard-work:
-  adguard-conf:
-
 services:
   # Traefik - Reverse Proxy & API Gateway
   traefik:
@@ -44,14 +36,14 @@ services:
     environment:
       - GF_SECURITY_ADMIN_USER=${GF_SECURITY_ADMIN_USER:-admin}
       - GF_SECURITY_ADMIN_PASSWORD=${GF_SECURITY_ADMIN_PASSWORD:-admin}
-      - GF_SERVER_DOMAIN=monitor.lab
-      - GF_SERVER_ROOT_URL=https://monitor.lab/grafana/
+      - GF_SERVER_DOMAIN=${TAILSCALE_HOSTNAME:-localhost}
+      - GF_SERVER_ROOT_URL=http://${TAILSCALE_HOSTNAME:-localhost}/grafana/
       - GF_SERVER_SERVE_FROM_SUB_PATH=true
       - GF_USERS_ALLOW_SIGN_UP=false
     volumes:
       - ./grafana/provisioning:/etc/grafana/provisioning:ro
       - ./grafana/dashboards:/var/lib/grafana/dashboards:ro
-      - grafana-data:/var/lib/grafana
+      - ${DATA_DIR:-./data}/grafana:/var/lib/grafana
     networks:
       - observability-net
     depends_on:
@@ -66,8 +58,7 @@ services:
     labels:
       - "traefik.enable=true"
       - "traefik.http.routers.grafana.rule=PathPrefix(`/grafana`)"
-      - "traefik.http.routers.grafana.entrypoints=websecure"
-      - "traefik.http.routers.grafana.tls=true"
+      - "traefik.http.routers.grafana.entrypoints=web,websecure"
       - "traefik.http.services.grafana.loadbalancer.server.port=3000"
 
   # Grafana Mimir - Scalable Metrics & Time Series DB
@@ -78,7 +69,7 @@ services:
     command: "-config.file=/etc/mimir/mimir.yml"
     volumes:
       - ./mimir/mimir.yml:/etc/mimir/mimir.yml:ro
-      - mimir-data:/var/mimir
+      - ${DATA_DIR:-./data}/mimir:/var/mimir
     networks:
       - observability-net
     healthcheck:
@@ -90,8 +81,7 @@ services:
     labels:
       - "traefik.enable=true"
       - "traefik.http.routers.mimir.rule=PathPrefix(`/mimir`)"
-      - "traefik.http.routers.mimir.entrypoints=websecure"
-      - "traefik.http.routers.mimir.tls=true"
+      - "traefik.http.routers.mimir.entrypoints=web,websecure"
       - "traefik.http.routers.mimir.middlewares=mimir-stripprefix"
       - "traefik.http.middlewares.mimir-stripprefix.stripprefix.prefixes=/mimir"
       - "traefik.http.services.mimir.loadbalancer.server.port=8080"
@@ -105,7 +95,7 @@ services:
     command: "-config.file=/etc/loki/config.yml"
     volumes:
       - ./loki/config.yml:/etc/loki/config.yml:ro
-      - loki-data:/var/loki
+      - ${DATA_DIR:-./data}/loki:/var/loki
     networks:
       - observability-net
     healthcheck:
@@ -117,8 +107,7 @@ services:
     labels:
       - "traefik.enable=true"
       - "traefik.http.routers.loki.rule=PathPrefix(`/loki`)"
-      - "traefik.http.routers.loki.entrypoints=websecure"
-      - "traefik.http.routers.loki.tls=true"
+      - "traefik.http.routers.loki.entrypoints=web,websecure"
       - "traefik.http.routers.loki.middlewares=loki-stripprefix"
       - "traefik.http.middlewares.loki-stripprefix.stripprefix.prefixes=/loki"
       - "traefik.http.services.loki.loadbalancer.server.port=3100"
@@ -128,6 +117,7 @@ services:
     image: grafana/alloy:${ALLOY_VERSION:-v1.7.1}
     container_name: alloy
     restart: unless-stopped
+    privileged: true
     command:
       - run
       - --server.http.listen-addr=0.0.0.0:12345
@@ -136,6 +126,9 @@ services:
       - ./alloy/config.alloy:/etc/alloy/config.alloy:ro
       - /var/run/docker.sock:/var/run/docker.sock:ro
       - /var/lib/docker/containers:/var/lib/docker/containers:ro
+      - /proc:/host/proc:ro
+      - /sys:/host/sys:ro
+      - /:/host/rootfs:ro
     networks:
       - observability-net
     depends_on:
@@ -149,13 +142,14 @@ services:
 
   # Grafana Tempo - Distributed Tracing Backend
   tempo:
-    image: grafana/tempo:${TEMPO_VERSION:-3.0.0}
+    image: grafana/tempo:${TEMPO_VERSION:-2.6.1}
     container_name: tempo
     restart: unless-stopped
+    user: root
     command: "-config.file=/etc/tempo/tempo.yml"
     volumes:
       - ./tempo/tempo.yml:/etc/tempo/tempo.yml:ro
-      - tempo-data:/var/tempo
+      - ${DATA_DIR:-./data}/tempo:/var/tempo
     networks:
       - observability-net
     healthcheck:
@@ -163,37 +157,11 @@ services:
       interval: 10s
       timeout: 5s
       retries: 3
+      start_period: 15s
     labels:
       - "traefik.enable=true"
       - "traefik.http.routers.tempo.rule=PathPrefix(`/tempo`)"
-      - "traefik.http.routers.tempo.entrypoints=websecure"
-      - "traefik.http.routers.tempo.tls=true"
+      - "traefik.http.routers.tempo.entrypoints=web,websecure"
       - "traefik.http.routers.tempo.middlewares=tempo-stripprefix"
       - "traefik.http.middlewares.tempo-stripprefix.stripprefix.prefixes=/tempo"
       - "traefik.http.services.tempo.loadbalancer.server.port=3200"
-
-  # AdGuard Home - Local DNS Server
-  adguard:
-    image: adguard/adguardhome:${ADGUARD_VERSION:-v0.107.57}
-    container_name: adguard
-    restart: unless-stopped
-    ports:
-      - "${HOST_IP:-192.168.0.7}:53:53/tcp"
-      - "${HOST_IP:-192.168.0.7}:53:53/udp"
-      - "3053:3000/tcp"
-    volumes:
-      - adguard-work:/opt/adguardhome/work
-      - adguard-conf:/opt/adguardhome/conf
-    networks:
-      - observability-net
-    healthcheck:
-      test: ["CMD", "wget", "--spider", "-q", "http://localhost:3000"]
-      interval: 10s
-      timeout: 5s
-      retries: 3
-    labels:
-      - "traefik.enable=true"
-      - "traefik.http.routers.adguard.rule=Host(`dns.monitor.lab`)"
-      - "traefik.http.routers.adguard.entrypoints=websecure"
-      - "traefik.http.routers.adguard.tls=true"
-      - "traefik.http.services.adguard.loadbalancer.server.port=3000"

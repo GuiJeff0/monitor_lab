@@ -111,3 +111,12 @@ Em River, declara-se a conexão e formatação dos envios (como autenticação, 
   }
   ```
   Assim, qualquer componente de captura só precisa repassar sua variável interna `forward_to` para a referência destes escritores.
+
+## 8. Coleta de Métricas do Host e Containers (Node Exporter & cAdvisor Embutidos)
+
+O Alloy possui exporters de hardware e container já integrados nativamente no seu binário, eliminando a necessidade de containers auxiliares dedicados:
+
+- **Host Metrics (`prometheus.exporter.unix`):** Lê métricas reais de CPU, memória, I/O de disco, filesystems e interfaces de rede da máquina hospedeira através dos pontos de montagem `/host/proc`, `/host/sys` e `/host/rootfs`.
+- **Container Metrics (`prometheus.exporter.cadvisor`):** Coleta métricas de consumo de CPU, memória, rede e I/O de cada container Docker em execução através do Docker daemon socket.
+- **Destino:** Ambas as fontes de métricas são repassadas ao `prometheus.remote_write.mimir.receiver` a cada 15 segundos e visualizadas nos dashboards provisionados automaticamente no Grafana.
+

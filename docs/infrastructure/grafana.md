@@ -82,12 +82,12 @@ Exemplos utilizados no contexto do laboratório:
 - `GF_SECURITY_ADMIN_USER`: Define o nome de usuário padrão do administrador.
 - `GF_SECURITY_ADMIN_PASSWORD`: Define a senha padrão.
 - `GF_USERS_ALLOW_SIGN_UP`: No lab, geralmente configurado para `false` para impedir registros aleatórios.
-- `GF_SERVER_DOMAIN`: O domínio base, neste caso configurado para `monitor.lab`.
-- `GF_SERVER_ROOT_URL`: Fundamental para o roteamento do Traefik, especialmente se o Grafana estiver num sub-path ou um host específico (ex: `https://monitor.lab/grafana`).
+- `GF_SERVER_DOMAIN`: O domínio base da rede Tailscale (ex: `homelab.tailxxxx.ts.net`).
+- `GF_SERVER_ROOT_URL`: Fundamental para o roteamento do Traefik via sub-path (ex: `http://homelab.tailxxxx.ts.net/grafana/`).
 - `GF_INSTALL_PLUGINS`: Utilizado para forçar a instalação de plugins não-nativos na subida do container.
 
 ## 7. Acesso
 
-- **URL Padrão**: A plataforma fica acessível através do gateway sob o endereço predeterminado, ex: `https://monitor.lab/grafana`.
+- **URL Padrão**: A plataforma fica acessível através do gateway sob o endereço predeterminado, ex: `http://<tailscale-host>/grafana` ou `http://<tailscale-ip>/grafana`.
 - **Credenciais**: Caso não sobrescrito por variáveis de ambiente, o padrão de acesso do Grafana é de usuário `admin` e senha `admin`. No primeiro acesso de instâncias não-provisionadas dessa forma, o Grafana forçará a troca.
-- **Porta Interna**: Para o roteamento do loadbalancer (Traefik), deve ser lembrado que o Grafana escuta nativamente na porta `3000`. Essa é a porta que deve ser exposta nas labels do Docker.
+- **Porta Interna**: Para o roteamento do loadbalancer (Traefik), o Grafana escuta nativamente na porta `3000`. Essa é a porta exposta nas labels do Docker.
