@@ -67,6 +67,7 @@ services:
     image: grafana/mimir-alpine:${MIMIR_VERSION:-2.15.0}
     container_name: mimir
     restart: unless-stopped
+    user: root
     command: "-config.file=/etc/mimir/mimir.yml"
     volumes:
       - ./mimir/mimir.yml:/etc/mimir/mimir.yml:ro
