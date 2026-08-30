@@ -169,7 +169,7 @@ Guia rápido para operação no dia a dia do laboratório:
 1. Abra o Grafana.
 2. Acesse o Dashboard de Infraestrutura.
 3. Verifique os painéis de status dos Containers, Uso de CPU/Memória.
-4. Para serviços, chame o endpoint `GET /health` pelo Traefik (ex: `https://monitor.lab/users/health`).
+4. Para serviços, chame o endpoint `GET /health` pelo Traefik (ex: `http://<tailscale-host>/users/health`).
 
 ### 10.2. Como encontrar erros no Loki?
 1. Abra Grafana -> Explore -> Loki.

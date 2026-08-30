@@ -2,7 +2,7 @@
 
 > **Aplicação:** Portal Web do Torcedor e Comprador de Ingressos (`ticket-web`)  
 > **Framework:** Next.js 15+ (App Router), React 19, TypeScript  
-> **Comunicação:** Chamadas REST HTTP para o **FastAPI BFF** (`https://monitor.lab/api/v1/*`) com terminação TLS via **Traefik**.
+> **Comunicação:** Chamadas REST HTTP para o **FastAPI BFF** (`http://<tailscale-host>/api/v1/*`) via **Traefik**.
 
 ---
 

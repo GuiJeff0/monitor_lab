@@ -102,3 +102,35 @@ prometheus.scrape "grafana" {
   forward_to = [prometheus.remote_write.mimir.receiver]
   scrape_interval = "15s"
 }
+
+// ==========================================
+// 3. HOST METRICS PIPELINE (Node Exporter -> Mimir)
+// ==========================================
+
+prometheus.exporter.unix "host" {
+  procfs_path = "/host/proc"
+  sysfs_path  = "/host/sys"
+  rootfs_path = "/host/rootfs"
+}
+
+prometheus.scrape "host" {
+  targets         = prometheus.exporter.unix.host.targets
+  forward_to      = [prometheus.remote_write.mimir.receiver]
+  scrape_interval = "15s"
+}
+
+// ==========================================
+// 4. CONTAINER METRICS PIPELINE (cAdvisor -> Mimir)
+// ==========================================
+
+prometheus.exporter.cadvisor "containers" {
+  docker_host      = "unix:///var/run/docker.sock"
+  storage_duration = "5m"
+  docker_only      = true
+}
+
+prometheus.scrape "cadvisor" {
+  targets         = prometheus.exporter.cadvisor.containers.targets
+  forward_to      = [prometheus.remote_write.mimir.receiver]
+  scrape_interval = "15s"
+}

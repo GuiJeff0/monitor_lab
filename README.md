@@ -4,12 +4,13 @@ Production-grade, reusable observability infrastructure and high-concurrency tic
 
 ---
 
-## 🏛️ Architecture Overview
+### 🏛️ Architecture Overview
 
 ```text
-                                  Clientes (Web / Mobile)
+                          Clientes (Web / Mobile / Tailscale Peers)
                                              │
-                                       HTTPS (TLS)
+                                  HTTP (80) / HTTPS (443)
+                                    via Tailscale Mesh
                                              │
                                              ▼
                                   ┌────────────────────┐
@@ -69,13 +70,14 @@ Production-grade, reusable observability infrastructure and high-concurrency tic
 
 | Component | Version | Role | Host Route / Port | Internal Access / Healthcheck |
 |---|---|---|---|---|
-| **Traefik** | `v3.7` | Reverse Proxy / API Gateway / Router | `http://monitor.lab:8080/dashboard/` (BasicAuth)<br>`https://monitor.lab/` | `traefik:8080` (`traefik healthcheck`) |
-| **Grafana** | `13.1.1` | Unified Visualization & Dashboards | `https://monitor.lab/grafana` | `grafana:3000` (`curl http://localhost:3000/api/health`) |
-| **Mimir** | `2.15.0` | Scalable Time-Series Metrics TSDB | `https://monitor.lab/mimir` | `mimir:8080` (`wget /ready`) |
-| **Loki** | `3.7.4` | Structured Log Aggregator | `https://monitor.lab/loki` | `loki:3100` (`loki -health`) |
-| **Grafana Alloy** | `v1.7.1` | Unified Telemetry Collector (Docker Logs) | Internal | `alloy:12345` (`/bin/alloy --version`) |
-| **Tempo** | `2.6.1` | Distributed Tracing Backend | `https://monitor.lab/tempo` | `tempo:3200`<br>`tempo:4317` (gRPC OTLP)<br>`tempo:4318` (HTTP OTLP) |
-| **AdGuard Home** | `v0.107.57` | Local DNS Server (Encrypted Upstream & DNS Rewrites) | `https://dns.monitor.lab/`<br>`192.168.0.7:53` | `adguard:3000` |
+| **Traefik** | `v3.7` | Reverse Proxy / API Gateway / Router | `http://<tailscale-host>:8080/dashboard/` (BasicAuth)<br>`http://<tailscale-host>/` | `traefik:8080` (`traefik healthcheck`) |
+| **Grafana** | `11.5.2` | Unified Visualization & Dashboards | `http://<tailscale-host>/grafana` | `grafana:3000` (`curl http://localhost:3000/api/health`) |
+| **Mimir** | `2.15.0` | Scalable Time-Series Metrics TSDB | `http://<tailscale-host>/mimir` | `mimir:8080` (`wget /ready`) |
+| **Loki** | `3.7.4` | Structured Log Aggregator | `http://<tailscale-host>/loki` | `loki:3100` (`loki -health`) |
+| **Grafana Alloy** | `v1.7.1` | Unified Telemetry Collector (Docker Logs, Host Metrics, Container Metrics) | Internal | `alloy:12345` (`/bin/alloy --version`) |
+| **Tempo** | `2.6.1` | Distributed Tracing Backend | `http://<tailscale-host>/tempo` | `tempo:3200`<br>`tempo:4317` (gRPC OTLP)<br>`tempo:4318` (HTTP OTLP) |
+
+> **Nota de Acesso Tailscale:** Substitua `<tailscale-host>` pelo hostname MagicDNS do seu servidor (ex: `homelab.tailxxxx.ts.net`) ou IP da Tailscale (`100.x.y.z`).
 
 ---
 
@@ -92,7 +94,6 @@ Toda a documentação técnica foi categorizada e organizada dentro da pasta [`d
 - [Guia de Boas Práticas](docs/standards/best-practices.md)
 - [Padrão de Desenvolvimento de Microsserviços](docs/standards/api-development-standards.md)
 - [Padrão de Tracing Distribuído & Correlation ID](docs/standards/distributed-tracing-standard.md)
-- [Padrão de DNS Local](docs/standards/local-dns-standard.md)
 
 ### 🏗️ [Infraestrutura](docs/infrastructure/)
 - [Traefik v3](docs/infrastructure/traefik.md)
@@ -154,12 +155,18 @@ observability-lab/
 ## 🚀 Como Iniciar a Infraestrutura
 
 ```bash
-# 1. Validar sintaxe do Docker Compose
+# 1. Configurar variáveis de ambiente (.env)
+cp .env.example .env
+# Nota sobre persistência (DATA_DIR):
+# - Ambiente Local (Dev): DATA_DIR=./data
+# - Servidor creedx66 (HDD 1TB): DATA_DIR=/mnt/dados/observability
+
+# 2. Validar sintaxe do Docker Compose
 docker compose config
 
-# 2. Iniciar todos os serviços de infraestrutura
+# 3. Iniciar todos os serviços de infraestrutura
 docker compose up -d
 
-# 3. Verificar o status e health de todos os containers
+# 4. Verificar o status e health de todos os containers
 docker compose ps
 ```

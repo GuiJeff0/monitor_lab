@@ -1,7 +1,16 @@
+# Dynamic TLS Configuration
+# Nota: No ambiente Tailscale, o tráfego WireGuard já é criptografado ponto a ponto.
+# Para habilitar terminação HTTPS direta no Traefik com certificado Tailscale:
+# 1. Execute no host: tailscale cert sua-maquina.tailxxxx.ts.net
+# 2. Mova os arquivos gerados (.crt e .key) para traefik/certificates/
+# 3. Descomente a seção 'certificates' abaixo.
+#
+# Alternativa recomendada: usar 'tailscale serve --bg 80' (Tailscale gerencia o TLS automaticamente).
+
 tls:
-  certificates:
-    - certFile: /etc/traefik/certificates/monitor.lab+1.pem
-      keyFile: /etc/traefik/certificates/monitor.lab+1-key.pem
+  # certificates:
+  #   - certFile: /etc/traefik/certificates/sua-maquina.tailxxxx.ts.net.crt
+  #     keyFile: /etc/traefik/certificates/sua-maquina.tailxxxx.ts.net.key
 
   options:
     default:
@@ -14,9 +23,3 @@ tls:
         - TLS_AES_128_GCM_SHA256
         - TLS_AES_256_GCM_SHA384
         - TLS_CHACHA20_POLY1305_SHA256
-
-  stores:
-    default:
-      defaultCertificate:
-        certFile: /etc/traefik/certificates/monitor.lab+1.pem
-        keyFile: /etc/traefik/certificates/monitor.lab+1-key.pem

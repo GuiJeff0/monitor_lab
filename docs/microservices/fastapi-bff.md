@@ -207,9 +207,8 @@ CMD ["uvicorn", "src.main:app", "--host", "0.0.0.0", "--port", "8000", "--worker
 ```yaml
 labels:
   - "traefik.enable=true"
-  - "traefik.http.routers.bff.rule=Host(`monitor.lab`) && PathPrefix(`/v1`)"
-  - "traefik.http.routers.bff.entrypoints=websecure"
-  - "traefik.http.routers.bff.tls=true"
+  - "traefik.http.routers.bff.rule=PathPrefix(`/v1`)"
+  - "traefik.http.routers.bff.entrypoints=web,websecure"
   - "traefik.http.services.bff.loadbalancer.server.port=8000"
 ```
 
