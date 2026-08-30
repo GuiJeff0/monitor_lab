@@ -80,7 +80,7 @@
           "calcs": [
             "mean"
           ],
-          "fields": "mimir",
+          "fields": "",
           "values": false
         },
         "textMode": "auto"
@@ -94,7 +94,7 @@
           },
           "expr": "count(container_last_seen{image!=\"\"})",
           "intervalFactor": 2,
-          "legendFormat": "mimir",
+          "legendFormat": "",
           "metric": "container_last_seen",
           "refId": "A",
           "step": 240
@@ -160,7 +160,7 @@
           "calcs": [
             "lastNotNull"
           ],
-          "fields": "mimir",
+          "fields": "",
           "values": false
         },
         "textMode": "auto"
@@ -174,7 +174,7 @@
           },
           "expr": "sum(container_memory_usage_bytes{image!=\"\"})/1024/1024",
           "intervalFactor": 2,
-          "legendFormat": "mimir",
+          "legendFormat": "",
           "metric": "container_memory_usage_bytes",
           "refId": "A",
           "step": 240
@@ -240,7 +240,7 @@
           "calcs": [
             "lastNotNull"
           ],
-          "fields": "mimir",
+          "fields": "",
           "values": false
         },
         "textMode": "auto"
@@ -254,7 +254,7 @@
           },
           "expr": "sum(rate(container_cpu_user_seconds_total{image!=\"\"}[5m]) * 100)",
           "intervalFactor": 2,
-          "legendFormat": "mimir",
+          "legendFormat": "",
           "metric": "container_memory_usage_bytes",
           "refId": "A",
           "step": 240
@@ -442,7 +442,7 @@
       "yaxes": [
         {
           "format": "bytes",
-          "label": "mimir",
+          "label": "",
           "logBase": 1,
           "show": true
         },
@@ -682,5 +682,5 @@
   "title": "Docker Containers (cAdvisor)",
   "uid": "ee75b6b8-f1c6-4ef1-9d39-fe50cc55a274",
   "version": 1,
-  "weekStart": "mimir"
+  "weekStart": ""
 }

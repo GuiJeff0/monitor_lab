@@ -118,8 +118,10 @@ services:
   alloy:
     image: grafana/alloy:${ALLOY_VERSION:-v1.7.1}
     container_name: alloy
+    hostname: ${HOSTNAME:-creedx66}
     restart: unless-stopped
     privileged: true
+    cgroup: host
     command:
       - run
       - --server.http.listen-addr=0.0.0.0:12345
@@ -127,9 +129,10 @@ services:
     volumes:
       - ./alloy/config.alloy:/etc/alloy/config.alloy:ro
       - /var/run/docker.sock:/var/run/docker.sock:ro
-      - /var/lib/docker/containers:/var/lib/docker/containers:ro
+      - /var/lib/docker:/var/lib/docker:ro
       - /proc:/host/proc:ro
       - /sys:/host/sys:ro
+      - /sys/fs/cgroup:/sys/fs/cgroup:ro
       - /:/host/rootfs:ro
     networks:
       - observability-net
