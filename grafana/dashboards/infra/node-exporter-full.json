@@ -301,6 +301,89 @@
         "type": "prometheus",
         "uid": "mimir"
       },
+      "description": "Processor temperature (CPU package / cores)",
+      "fieldConfig": {
+        "defaults": {
+          "color": {
+            "mode": "thresholds"
+          },
+          "decimals": 1,
+          "mappings": [
+            {
+              "options": {
+                "match": "null",
+                "result": {
+                  "text": "N/A"
+                }
+              },
+              "type": "special"
+            }
+          ],
+          "max": 100,
+          "min": 0,
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "rgba(50, 172, 45, 0.97)"
+              },
+              {
+                "color": "rgba(237, 129, 40, 0.89)",
+                "value": 70
+              },
+              {
+                "color": "rgba(245, 54, 54, 0.9)",
+                "value": 85
+              }
+            ]
+          },
+          "unit": "celsius"
+        },
+        "overrides": []
+      },
+      "gridPos": {
+        "h": 4,
+        "w": 3,
+        "x": 6,
+        "y": 1
+      },
+      "id": 350,
+      "options": {
+        "minVizHeight": 75,
+        "minVizWidth": 75,
+        "orientation": "auto",
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ],
+          "fields": "",
+          "values": false
+        },
+        "showThresholdLabels": false,
+        "showThresholdMarkers": true,
+        "sizing": "auto"
+      },
+      "pluginVersion": "11.6.1",
+      "targets": [
+        {
+          "editorMode": "code",
+          "exemplar": false,
+          "expr": "max(node_hwmon_temp_celsius{instance=\"$node\", job=\"$job\", chip=~\"platform_coretemp.*|.*coretemp.*|.*k10temp.*|.*cpu.*|.*zenpower.*\"}) or max(node_thermal_zone_temp{instance=\"$node\", job=\"$job\", type=~\"x86_pkg_temp|.*cpu.*\"}) or max(node_hwmon_temp_celsius{instance=\"$node\", job=\"$job\"})",
+          "instant": true,
+          "legendFormat": "",
+          "range": false,
+          "refId": "A",
+          "step": 240
+        }
+      ],
+      "title": "CPU Temp",
+      "type": "gauge"
+    },
+    {
+      "datasource": {
+        "type": "prometheus",
+        "uid": "mimir"
+      },
       "description": "System load over all CPU cores together",
       "fieldConfig": {
         "defaults": {
@@ -344,7 +427,7 @@
       "gridPos": {
         "h": 4,
         "w": 3,
-        "x": 6,
+        "x": 9,
         "y": 1
       },
       "id": 155,
@@ -417,7 +500,7 @@
       "gridPos": {
         "h": 4,
         "w": 3,
-        "x": 9,
+        "x": 12,
         "y": 1
       },
       "id": 16,
@@ -450,88 +533,6 @@
         }
       ],
       "title": "RAM Used",
-      "type": "gauge"
-    },
-    {
-      "datasource": {
-        "type": "prometheus",
-        "uid": "mimir"
-      },
-      "description": "Percentage of swap space currently used by the system",
-      "fieldConfig": {
-        "defaults": {
-          "color": {
-            "mode": "thresholds"
-          },
-          "decimals": 1,
-          "mappings": [
-            {
-              "options": {
-                "match": "null",
-                "result": {
-                  "text": "N/A"
-                }
-              },
-              "type": "special"
-            }
-          ],
-          "max": 100,
-          "min": 0,
-          "thresholds": {
-            "mode": "absolute",
-            "steps": [
-              {
-                "color": "rgba(50, 172, 45, 0.97)"
-              },
-              {
-                "color": "rgba(237, 129, 40, 0.89)",
-                "value": 10
-              },
-              {
-                "color": "rgba(245, 54, 54, 0.9)",
-                "value": 25
-              }
-            ]
-          },
-          "unit": "percent"
-        },
-        "overrides": []
-      },
-      "gridPos": {
-        "h": 4,
-        "w": 3,
-        "x": 12,
-        "y": 1
-      },
-      "id": 21,
-      "options": {
-        "minVizHeight": 75,
-        "minVizWidth": 75,
-        "orientation": "auto",
-        "reduceOptions": {
-          "calcs": [
-            "lastNotNull"
-          ],
-          "fields": "",
-          "values": false
-        },
-        "showThresholdLabels": false,
-        "showThresholdMarkers": true,
-        "sizing": "auto"
-      },
-      "pluginVersion": "11.6.1",
-      "targets": [
-        {
-          "editorMode": "code",
-          "exemplar": false,
-          "expr": "(node_memory_SwapTotal_bytes{instance=\"$node\",job=\"$job\"} > bool 0) * ((node_memory_SwapTotal_bytes{instance=\"$node\",job=\"$job\"} - node_memory_SwapFree_bytes{instance=\"$node\",job=\"$job\"}) / (node_memory_SwapTotal_bytes{instance=\"$node\",job=\"$job\"})) * 100",
-          "instant": true,
-          "range": false,
-          "refId": "A",
-          "step": 240
-        }
-      ],
-      "title": "SWAP Used",
       "type": "gauge"
     },
     {
@@ -1161,7 +1162,7 @@
       },
       "gridPos": {
         "h": 7,
-        "w": 12,
+        "w": 8,
         "x": 0,
         "y": 6
       },
@@ -1240,6 +1241,107 @@
         }
       ],
       "title": "CPU Basic",
+      "type": "timeseries"
+    },
+    {
+      "datasource": {
+        "type": "prometheus",
+        "uid": "mimir"
+      },
+      "description": "Processor temperature over time (cores & package)",
+      "fieldConfig": {
+        "defaults": {
+          "color": {
+            "mode": "palette-classic"
+          },
+          "custom": {
+            "axisBorderShow": false,
+            "axisCenteredZero": false,
+            "axisColorMode": "text",
+            "axisLabel": "",
+            "axisPlacement": "auto",
+            "barAlignment": 0,
+            "drawStyle": "line",
+            "fillOpacity": 15,
+            "gradientMode": "none",
+            "hideFrom": {
+              "legend": false,
+              "tooltip": false,
+              "viz": false
+            },
+            "lineInterpolation": "smooth",
+            "lineWidth": 2,
+            "pointSize": 5,
+            "scaleDistribution": {
+              "type": "linear"
+            },
+            "showPoints": "never",
+            "spanNulls": false,
+            "stacking": {
+              "group": "A",
+              "mode": "none"
+            },
+            "thresholdsStyle": {
+              "mode": "line"
+            }
+          },
+          "decimals": 1,
+          "mappings": [],
+          "min": 0,
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "green"
+              },
+              {
+                "color": "orange",
+                "value": 70
+              },
+              {
+                "color": "red",
+                "value": 85
+              }
+            ]
+          },
+          "unit": "celsius"
+        },
+        "overrides": []
+      },
+      "gridPos": {
+        "h": 7,
+        "w": 8,
+        "x": 8,
+        "y": 6
+      },
+      "id": 351,
+      "options": {
+        "legend": {
+          "calcs": [
+            "lastNotNull",
+            "max"
+          ],
+          "displayMode": "table",
+          "placement": "bottom",
+          "showLegend": true
+        },
+        "tooltip": {
+          "mode": "multi",
+          "sort": "none"
+        }
+      },
+      "pluginVersion": "11.6.1",
+      "targets": [
+        {
+          "editorMode": "code",
+          "expr": "node_hwmon_temp_celsius{instance=\"$node\", job=\"$job\", chip=~\"platform_coretemp.*|.*coretemp.*|.*k10temp.*|.*cpu.*\"}",
+          "legendFormat": "{{sensor}}",
+          "range": true,
+          "refId": "A",
+          "step": 240
+        }
+      ],
+      "title": "CPU Temperature",
       "type": "timeseries"
     },
     {
@@ -1374,8 +1476,8 @@
       },
       "gridPos": {
         "h": 7,
-        "w": 12,
-        "x": 12,
+        "w": 8,
+        "x": 16,
         "y": 6
       },
       "id": 78,
