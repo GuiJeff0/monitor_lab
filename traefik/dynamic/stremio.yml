@@ -1,0 +1,74 @@
+http:
+  routers:
+    # 1. Redireciona /stremio para /stremio/ (evita tela branca)
+    stremio-redirect:
+      rule: "Path(`/stremio`)"
+      priority: 100
+      entryPoints:
+        - web
+        - websecure
+      service: stremio-web-service
+      middlewares:
+        - stremio-redirect-slash
+
+    # 2. Roteia /stremio/ e assets para o Web Player (:8080)
+    stremio-web:
+      rule: "PathPrefix(`/stremio/`)"
+      priority: 50
+      entryPoints:
+        - web
+        - websecure
+      service: stremio-web-service
+      middlewares:
+        - stremio-stripprefix
+        - stremio-ipallowlist
+
+    # 3. Roteia /stremio-server para o Streaming Engine (:11470)
+    stremio-server:
+      rule: "PathPrefix(`/stremio-server`)"
+      priority: 50
+      entryPoints:
+        - web
+        - websecure
+      service: stremio-server-service
+      middlewares:
+        - stremio-server-stripprefix
+        - stremio-ipallowlist
+
+  services:
+    stremio-web-service:
+      loadBalancer:
+        servers:
+          - url: "http://stremio:8080"
+
+    stremio-server-service:
+      loadBalancer:
+        servers:
+          - url: "http://stremio:11470"
+
+  middlewares:
+    stremio-redirect-slash:
+      redirectRegex:
+        regex: "^.*(/stremio)$"
+        replacement: "${1}/"
+        permanent: false
+
+    stremio-stripprefix:
+      stripPrefix:
+        prefixes:
+          - "/stremio"
+
+    stremio-server-stripprefix:
+      stripPrefix:
+        prefixes:
+          - "/stremio-server"
+
+    stremio-ipallowlist:
+      ipAllowList:
+        sourceRange:
+          - "127.0.0.1/32"
+          - "100.64.0.0/10"
+          - "192.168.0.0/16"
+          - "172.16.0.0/12"
+          - "10.0.0.0/8"
+
