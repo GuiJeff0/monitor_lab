@@ -15565,7 +15565,11 @@
       },
       {
         "allValue": null,
-        "current": {},
+        "current": {
+          "selected": true,
+          "text": "integrations/unix",
+          "value": "integrations/unix"
+        },
         "datasource": {
           "type": "prometheus",
           "uid": "mimir"
@@ -15589,12 +15593,16 @@
       },
       {
         "allValue": null,
-        "current": {},
+        "current": {
+          "selected": true,
+          "text": "creedx66",
+          "value": "creedx66"
+        },
         "datasource": {
           "type": "prometheus",
           "uid": "mimir"
         },
-        "definition": "label_values(node_uname_info{job=~\"$job\"}, nodename)",
+        "definition": "label_values(node_uname_info{job=~\"$job\", nodename!~\"^[0-9a-f]{12}$\"}, nodename)",
         "hide": 0,
         "includeAll": false,
         "label": "Nodename",
@@ -15602,7 +15610,7 @@
         "name": "nodename",
         "options": [],
         "query": {
-          "query": "label_values(node_uname_info{job=~\"$job\"}, nodename)",
+          "query": "label_values(node_uname_info{job=~\"$job\", nodename!~\"^[0-9a-f]{12}$\"}, nodename)",
           "refId": "Prometheus-nodename-Variable-Query"
         },
         "refresh": 2,
@@ -15613,12 +15621,16 @@
       },
       {
         "allValue": null,
-        "current": {},
+        "current": {
+          "selected": true,
+          "text": "creedx66",
+          "value": "creedx66"
+        },
         "datasource": {
           "type": "prometheus",
           "uid": "mimir"
         },
-        "definition": "label_values(node_uname_info{job=~\"$job\", nodename=~\"$nodename\"}, instance)",
+        "definition": "label_values(node_uname_info{job=~\"$job\", nodename=~\"$nodename\", instance!~\"^[0-9a-f]{12}$\"}, instance)",
         "hide": 0,
         "includeAll": false,
         "label": "Instance",
@@ -15626,7 +15638,7 @@
         "name": "node",
         "options": [],
         "query": {
-          "query": "label_values(node_uname_info{job=~\"$job\", nodename=~\"$nodename\"}, instance)",
+          "query": "label_values(node_uname_info{job=~\"$job\", nodename=~\"$nodename\", instance!~\"^[0-9a-f]{12}$\"}, instance)",
           "refId": "Prometheus-node-Variable-Query"
         },
         "refresh": 2,
