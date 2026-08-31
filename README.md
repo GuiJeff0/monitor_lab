@@ -1,4 +1,4 @@
-# Cloud-Native Observability Lab — Ticket Booking System
+# Observability Lab
 
 Production-grade, reusable observability infrastructure and high-concurrency ticket booking platform built with **Traefik v3**, the **Grafana Stack** (Mimir, Loki, Tempo, Alloy, Grafana), **RabbitMQ**, **PostgreSQL**, **MongoDB**, and **Elasticsearch**.
 

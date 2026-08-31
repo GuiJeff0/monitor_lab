@@ -1,16 +1,56 @@
 http:
   routers:
-    dashboard:
-      rule: "PathPrefix(`/api`) || PathPrefix(`/dashboard`)"
+    traefik-root-redirect:
+      rule: "Path(`/traefik`) || Path(`/traefik/`)"
+      priority: 100
       entryPoints:
-        - traefik
+        - web
+        - websecure
       service: api@internal
       middlewares:
+        - traefik-redirect-to-dashboard
+
+    traefik-dashboard:
+      rule: "PathPrefix(`/traefik`) || PathPrefix(`/api`)"
+      priority: 50
+      entryPoints:
+        - web
+        - websecure
+      service: api@internal
+      middlewares:
+        - dashboard-ipallowlist
+        - dashboard-ratelimit
         - dashboard-auth
+        - traefik-stripprefix
 
   middlewares:
+    traefik-redirect-to-dashboard:
+      redirectRegex:
+        regex: "^.*(/traefik)/?$"
+        replacement: "${1}/dashboard/"
+        permanent: false
+
+    traefik-stripprefix:
+      stripPrefix:
+        prefixes:
+          - "/traefik"
+
     dashboard-auth:
       basicAuth:
-        realm: "Traefik Dashboard"
+        realm: "Traefik Login"
         users:
           - "admin:$apr1$0ZD.qXtf$7HNOJuB5EOndJZhMsyyXm1"
+
+    dashboard-ipallowlist:
+      ipAllowList:
+        sourceRange:
+          - "127.0.0.1/32"
+          - "100.64.0.0/10"
+          - "192.168.0.0/16"
+          - "172.16.0.0/12"
+          - "10.0.0.0/8"
+
+    dashboard-ratelimit:
+      rateLimit:
+        average: 100
+        burst: 50
