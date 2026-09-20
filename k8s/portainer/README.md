@@ -5,5 +5,5 @@ Este diretório gerencia o controle de acesso e permissões da interface web Por
 ## Arquivos
 
 - **`portainer-rbac.yaml`**: Define a conta de serviço (`portainer-sa-clusteradmin`) e a `ClusterRole` restrita (`portainer-restricted`).
-  - **Permitido:** Leitura de Pods, Deployments, StatefulSets, DaemonSets, Services, ConfigMaps, HPAs, Jobs, Nós, StorageClasses e Métricas.
-  - **Bloqueado:** Totalmente sem permissão sobre `secrets` em qualquer namespace (protegendo chaves do SOPS e senhas de banco contra extração na UI).
+  - **Permitido:** Leitura (`get`, `list`, `watch`) de Pods, Deployments, StatefulSets, DaemonSets, Services, ConfigMaps, HPAs, Jobs, Nós, StorageClasses, Métricas e Secrets (necessário para o Helm listar e inspecionar releases como Traefik, Grafana e Alloy).
+  - **Bloqueado:** Totalmente sem permissões de escrita/modificação/deleção (`create`, `update`, `patch`, `delete`) em Secrets e infraestrutura crítica.

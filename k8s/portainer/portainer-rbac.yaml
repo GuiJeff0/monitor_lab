@@ -1,9 +1,10 @@
 # ==============================================================================
-# Portainer RBAC Restrito (Sem acesso de leitura/escrita a Secrets)
+# Portainer RBAC Restrito (Leitura de Cluster e Helm Releases)
 # ==============================================================================
 # Garante a existência do ServiceAccount do Portainer,
-# fornece permissões de leitura do cluster (Nodes, Pods, Workloads, Versão, Métricas),
-# mas BLOQUEIA explicitamente o acesso aos Secrets em todos os namespaces.
+# fornece permissões de leitura do cluster (Nodes, Pods, Workloads, Versão, Métricas,
+# e Secrets em modo somente-leitura para visualização de releases Helm como Traefik),
+# mas BLOQUEIA permissões de escrita/modificação/exclusão em Secrets do cluster.
 # ==============================================================================
 
 apiVersion: v1
@@ -46,12 +47,13 @@ rules:
     resources: ["jobs", "cronjobs"]
     verbs: ["get", "list", "watch"]
 
-  # 3. Networking e Configurações (ConfigMaps permitidos, SECRETS OMITIDOS)
+  # 3. Networking, Configurações e Helm Releases (Secrets para leitura do Helm)
   - apiGroups: [""]
     resources:
       - services
       - endpoints
       - configmaps
+      - secrets
       - namespaces
       - events
       - resourcequotas
