@@ -32,6 +32,31 @@ Thumbs.db
 data/
 *.db
 
-# Markdown documentation / archives
+# Terraform
+.terraform/
+terraform/.terraform/
+*.tfstate
+*.tfstate.*
+*.tfvars
+*.tfvars.json
+crash.log
+crash.*.log
+override.tf
+override.tf.json
+*_override.tf
+*_override.tf.json
+.terraformrc
+terraform.rc
 
+# SOPS & Age private keys (SECRETS)
+*.agekey
+*.age
+keys.txt
+*age*keys.txt
+*.key
+*.pem
 
+# Kubernetes local configs
+kubeconfig
+kubeconfig.yaml
+k3s.yaml

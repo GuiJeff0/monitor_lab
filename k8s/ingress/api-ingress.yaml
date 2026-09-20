@@ -1,0 +1,19 @@
+apiVersion: traefik.io/v1alpha1
+kind: IngressRoute
+metadata:
+  name: api-ingress
+  namespace: apps
+spec:
+  entryPoints:
+    - web
+    - websecure
+  routes:
+    - match: PathPrefix(`/api/v1`)
+      kind: Rule
+      services:
+        - name: fastapi-bff
+          port: 8000
+      middlewares:
+        - name: tailscale-ipallowlist
+          namespace: ingress
+

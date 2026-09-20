@@ -1,0 +1,84 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: alloy-config
+  namespace: observability
+data:
+  config.alloy: |
+    // =========================================================================
+    // Grafana Alloy Configuration for Kubernetes (K3s)
+    // Unified collector: OTLP Ingestion + Pod Logs + Host/K8s Metrics
+    // =========================================================================
+
+    // 1. OTLP RECEIVER (Ingestão direta dos Microsserviços)
+    otelcol.receiver.otlp "default" {
+      grpc {
+        endpoint = "0.0.0.0:4317"
+      }
+      http {
+        endpoint = "0.0.0.0:4318"
+      }
+      output {
+        metrics = [otelcol.exporter.prometheus.mimir.input]
+        logs    = [otelcol.exporter.loki.loki.input]
+        traces  = [otelcol.exporter.otlp.tempo.input]
+      }
+    }
+
+    // Export OTLP Traces to Tempo
+    otelcol.exporter.otlp "tempo" {
+      client {
+        endpoint = "tempo.observability.svc.cluster.local:4317"
+        tls {
+          insecure = true
+        }
+      }
+    }
+
+    // Export OTLP Metrics to Prometheus Remote Write (Mimir)
+    otelcol.exporter.prometheus "mimir" {
+      forward_to = [prometheus.remote_write.mimir.receiver]
+    }
+
+    // Export OTLP Logs to Loki
+    otelcol.exporter.loki "loki" {
+      forward_to = [loki.write.endpoint.receiver]
+    }
+
+    // 2. LOGS PIPELINE (Pod Logs via /var/log/pods -> Loki)
+    discovery.kubernetes "pods" {
+      role = "pod"
+    }
+
+    loki.source.kubernetes "pod_logs" {
+      targets    = discovery.kubernetes.pods.targets
+      forward_to = [loki.write.endpoint.receiver]
+    }
+
+    loki.write "endpoint" {
+      endpoint {
+        url = "http://loki.observability.svc.cluster.local:3100/loki/api/v1/push"
+      }
+    }
+
+    // 3. METRICS PIPELINE (Mimir Remote Write)
+    prometheus.remote_write "mimir" {
+      endpoint {
+        url = "http://mimir.observability.svc.cluster.local:8080/api/v1/push"
+      }
+    }
+
+    // Scrape Kubelet / CAdvisor for container resource usage
+    prometheus.scrape "kubelet" {
+      targets = [
+        {"__address__" = "localhost:10250", "job" = "kubelet"},
+      ]
+      scheme = "https"
+      tls_config {
+        insecure_skip_verify = true
+      }
+      bearer_token_file = "/var/run/secrets/kubernetes.io/serviceaccount/token"
+      forward_to        = [prometheus.remote_write.mimir.receiver]
+      scrape_interval   = "15s"
+    }
+
