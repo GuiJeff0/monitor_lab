@@ -1,0 +1,22 @@
+apiVersion: traefik.io/v1alpha1
+kind: IngressRoute
+metadata:
+  name: soap-service-ingress
+  namespace: apps
+spec:
+  entryPoints:
+    # 🚨 Rota SOAP escuta EXCLUSIVAMENTE em websecure (HTTPS/TLS) para proteger payloads XML
+    - websecure
+  routes:
+    - match: PathPrefix(`/soap/v1`)
+      kind: Rule
+      services:
+        - name: soap-service
+          port: 8080
+      middlewares:
+        - name: tailscale-ipallowlist
+        - name: soap-headers
+        - name: soap-ratelimit
+        - name: soap-buffering
+  tls: {}
+

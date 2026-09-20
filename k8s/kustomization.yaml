@@ -10,3 +10,5 @@ resources:
   - observability/tempo.yaml
   - observability/grafana-admin.enc.yaml
   - observability/network-policy.yaml
+  - portainer/portainer-rbac.yaml
+  - resource-quotas.yaml

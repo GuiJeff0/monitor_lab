@@ -1,0 +1,28 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: soap-security-config
+  namespace: apps
+data:
+  soap-security.yaml: |
+    # Hardening de XML Parser contra XXE, Billion Laughs (XML Bomb) e SSRF
+    xml_parser:
+      resolve_entities: false          # Previne XXE (XML External Entity Injection)
+      load_dtd: false                  # Previne carregamento de DTD externo (SSRF)
+      no_network: true                 # Bloqueia qualquer requisição de rede pelo parser
+      max_entity_expansions: 0         # Mitiga Billion Laughs / quadratic blowup
+      max_request_size_bytes: 1048576  # 1MB limite do payload
+    
+    # Políticas WS-Security
+    ws_security:
+      timestamp_ttl_seconds: 300       # Janela de tolerância para mitigar Replay Attacks
+      require_timestamp: true
+      require_signature: true
+      require_encryption: false        # Habilitar conforme necessidade da integração
+      allowed_algorithms:
+        - "http://www.w3.org/2001/04/xmldsig-more#rsa-sha256"
+        - "http://www.w3.org/2001/04/xmlenc#aes256-cbc"
+      blocked_algorithms:
+        - "http://www.w3.org/2000/09/xmldsig#rsa-sha1"
+        - "http://www.w3.org/2001/04/xmlenc#rsa-1_5"
+

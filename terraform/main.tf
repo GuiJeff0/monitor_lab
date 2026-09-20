@@ -61,6 +61,13 @@ resource "helm_release" "traefik" {
       deployment = {
         replicas = 1
       }
+      updateStrategy = {
+        type = "RollingUpdate"
+        rollingUpdate = {
+          maxUnavailable = 1
+          maxSurge       = 0
+        }
+      }
       ports = {
         web = {
           port        = 80
@@ -115,6 +122,7 @@ resource "helm_release" "portainer" {
 
   values = [
     yamlencode({
+      localMgmt = false
       service = {
         type = "ClusterIP"
       }
@@ -169,8 +177,12 @@ resource "helm_release" "grafana" {
               access    = "proxy"
               isDefault = true
               jsonData = {
-                httpMethod   = "POST"
-                timeInterval = "15s"
+                httpMethod      = "POST"
+                timeInterval    = "15s"
+                httpHeaderName1 = "X-Scope-OrgID"
+              }
+              secureJsonData = {
+                httpHeaderValue1 = "platform"
               }
             },
             {
@@ -180,7 +192,8 @@ resource "helm_release" "grafana" {
               url    = "http://loki.observability.svc.cluster.local:3100"
               access = "proxy"
               jsonData = {
-                maxLines = 1000
+                maxLines        = 1000
+                httpHeaderName1 = "X-Scope-OrgID"
                 derivedFields = [
                   {
                     datasourceUid = "tempo"
@@ -189,6 +202,9 @@ resource "helm_release" "grafana" {
                     url           = "$${__value.raw}"
                   }
                 ]
+              }
+              secureJsonData = {
+                httpHeaderValue1 = "platform"
               }
             },
             {

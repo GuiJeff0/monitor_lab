@@ -1,0 +1,65 @@
+# ==============================================================================
+# Portainer RBAC Restrito (Sem acesso de leitura/escrita a Secrets)
+# ==============================================================================
+# Remove o privilégio cluster-admin padrão do Portainer CE.
+# Permite ao Portainer visualizar e gerenciar Pods, Workloads e Configs,
+# mas BLOQUEIA explicitamente o acesso aos Secrets em todos os namespaces.
+# ==============================================================================
+
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
+  name: portainer-restricted
+rules:
+  # 1. Pods e Logs
+  - apiGroups: [""]
+    resources: ["pods", "pods/log", "pods/status"]
+    verbs: ["get", "list", "watch"]
+
+  # 2. Workloads (Deployments, StatefulSets, DaemonSets, ReplicaSets)
+  - apiGroups: ["apps"]
+    resources: ["deployments", "statefulsets", "daemonsets", "replicasets"]
+    verbs: ["get", "list", "watch"]
+
+  # 3. Networking e Configurações (ConfigMaps permitidos, SECRETS OMITIDOS)
+  - apiGroups: [""]
+    resources: ["services", "endpoints", "configmaps", "namespaces", "events"]
+    verbs: ["get", "list", "watch"]
+
+  # 4. Storage
+  - apiGroups: [""]
+    resources: ["persistentvolumeclaims", "persistentvolumes"]
+    verbs: ["get", "list", "watch"]
+  - apiGroups: ["storage.k8s.io"]
+    resources: ["storageclasses"]
+    verbs: ["get", "list", "watch"]
+
+  # 5. Nós e Métricas
+  - apiGroups: [""]
+    resources: ["nodes", "nodes/status"]
+    verbs: ["get", "list", "watch"]
+  - apiGroups: ["metrics.k8s.io"]
+    resources: ["pods", "nodes"]
+    verbs: ["get", "list", "watch"]
+
+  # 6. Custom Resource Definitions (Traefik IngressRoutes, Flux)
+  - apiGroups: ["apiextensions.k8s.io"]
+    resources: ["customresourcedefinitions"]
+    verbs: ["get", "list", "watch"]
+  - apiGroups: ["traefik.io"]
+    resources: ["ingressroutes", "middlewares"]
+    verbs: ["get", "list", "watch"]
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRoleBinding
+metadata:
+  name: portainer-restricted-binding
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: ClusterRole
+  name: portainer-restricted
+subjects:
+  - kind: ServiceAccount
+    name: portainer-sa-clusteradmin
+    namespace: portainer
+

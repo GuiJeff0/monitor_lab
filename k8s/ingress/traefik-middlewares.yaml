@@ -78,3 +78,67 @@ spec:
       - "192.168.0.0/16"
       - "172.16.0.0/12"
       - "10.0.0.0/8"
+---
+# ------------------------------------------------------------------------------
+# HTTPS Redirect Middlewares (por namespace)
+# ------------------------------------------------------------------------------
+apiVersion: traefik.io/v1alpha1
+kind: Middleware
+metadata:
+  name: https-redirect
+  namespace: ingress
+spec:
+  redirectScheme:
+    scheme: https
+    permanent: true
+---
+apiVersion: traefik.io/v1alpha1
+kind: Middleware
+metadata:
+  name: https-redirect
+  namespace: apps
+spec:
+  redirectScheme:
+    scheme: https
+    permanent: true
+---
+# ------------------------------------------------------------------------------
+# SOAP Security Middlewares (Namespace apps)
+# ------------------------------------------------------------------------------
+apiVersion: traefik.io/v1alpha1
+kind: Middleware
+metadata:
+  name: soap-headers
+  namespace: apps
+spec:
+  headers:
+    customRequestHeaders:
+      X-Content-Type-Options: "nosniff"
+    customResponseHeaders:
+      X-Content-Type-Options: "nosniff"
+      X-Frame-Options: "DENY"
+      Strict-Transport-Security: "max-age=63072000; includeSubDomains; preload"
+      Content-Security-Policy: "default-src 'none'"
+---
+apiVersion: traefik.io/v1alpha1
+kind: Middleware
+metadata:
+  name: soap-ratelimit
+  namespace: apps
+spec:
+  rateLimit:
+    average: 50
+    burst: 100
+    period: 1m
+---
+apiVersion: traefik.io/v1alpha1
+kind: Middleware
+metadata:
+  name: soap-buffering
+  namespace: apps
+spec:
+  buffering:
+    maxRequestBodyBytes: 1048576       # 1MB max body (mitigação contra XML Bomb / Billion Laughs)
+    maxResponseBodyBytes: 10485760     # 10MB max response
+    memRequestBodyBytes: 524288        # 512KB buffer na memória
+    retryExpression: "IsNetworkError() && Attempts() < 2"

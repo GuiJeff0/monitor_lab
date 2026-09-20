@@ -12,11 +12,14 @@ spec:
     - from:
         - podSelector: {}
 
-    # 2. Permite tráfego do Traefik (namespace ingress) para a UI do Grafana
+    # 2. Permite tráfego do Traefik (namespace ingress) exclusivamente para a UI do Grafana
     - from:
         - namespaceSelector:
             matchLabels:
-              app.kubernetes.io/managed-by: terraform
+              kubernetes.io/metadata.name: ingress
+          podSelector:
+            matchLabels:
+              app.kubernetes.io/name: traefik
       ports:
         - protocol: TCP
           port: 80
@@ -27,10 +30,16 @@ spec:
     - from:
         - namespaceSelector:
             matchLabels:
-              app.kubernetes.io/managed-by: terraform
+              kubernetes.io/metadata.name: apps
       ports:
         - protocol: TCP
           port: 4317 # OTLP gRPC
         - protocol: TCP
           port: 4318 # OTLP HTTP
+
+    # 4. Permite healthchecks e probes do kubelet (nós do cluster)
+    - from:
+        - namespaceSelector:
+            matchLabels:
+              kubernetes.io/metadata.name: kube-system
 

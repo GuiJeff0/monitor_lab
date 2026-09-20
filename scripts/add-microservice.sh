@@ -99,10 +99,13 @@ spec:
           imagePullPolicy: IfNotPresent
           securityContext:
             allowPrivilegeEscalation: false
-            readOnlyRootFilesystem: false
+            readOnlyRootFilesystem: true
             capabilities:
               drop:
                 - ALL
+          volumeMounts:
+            - name: tmp
+              mountPath: /tmp
           ports:
             - containerPort: ${SERVICE_PORT}
               name: ${SERVICE_PROTOCOL}
@@ -122,6 +125,11 @@ spec:
               cpu: 250m
               memory: 256Mi
 ${PROBE_BLOCK}
+      volumes:
+        - name: tmp
+          emptyDir:
+            medium: Memory
+            sizeLimit: 64Mi
 ---
 apiVersion: v1
 kind: Service
