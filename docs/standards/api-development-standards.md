@@ -9,7 +9,8 @@
 
 Todos os microsserviços do ecossistema devem seguir rigorosamente os princípios de **Clean Architecture**, isolamento de domínios (Domain-Driven Boundaries), observabilidade nativa e comunicação de alto desempenho.
 
-### Princípios Fundamentais:
+## Princípios Fundamentais
+
 1. **Contratos Estritos:** Schemas Pydantic v2 para HTTP/REST e `.proto` (Protobuf v3) para gRPC.
 2. **Separação de Protocolos:**
    - **Síncrono Externo:** HTTP/HTTPS via FastAPI BFF.
@@ -23,6 +24,7 @@ Todos os microsserviços do ecossistema devem seguir rigorosamente os princípio
 # 2. Stacks Tecnológicas Padrão
 
 ## 2.1 Backend for Frontend (FastAPI BFF)
+
 - **Linguagem:** Python 3.13+
 - **Framework:** FastAPI / Uvicorn
 - **Validação & Tipagem:** Pydantic v2
@@ -30,6 +32,7 @@ Todos os microsserviços do ecossistema devem seguir rigorosamente os princípio
 - **Observabilidade:** `opentelemetry-api`, `opentelemetry-sdk`, `opentelemetry-instrumentation-fastapi`
 
 ## 2.2 Microsserviços Internos de Alta Concorrência (Golang)
+
 - **Linguagem:** Golang 1.23+
 - **Comunicação Síncrona:** `google.golang.org/grpc` + `google.golang.org/protobuf`
 - **Mensageria:** `github.com/rabbitmq/amqp091-go`
@@ -43,6 +46,7 @@ Todos os microsserviços do ecossistema devem seguir rigorosamente os princípio
 # 3. Estruturas de Projeto Padronizadas
 
 ## 3.1 Estrutura Python / FastAPI (BFF)
+
 ```text
 fastapi-bff/
 ├── app/
@@ -74,6 +78,7 @@ fastapi-bff/
 ```
 
 ## 3.2 Estrutura Golang (Standard Clean Architecture)
+
 ```text
 <service-name>/
 ├── cmd/
@@ -105,6 +110,7 @@ fastapi-bff/
 # 4. Padrões de Comunicação
 
 ## 4.1 gRPC (Síncrono)
+
 1. **Contratos Centralizados:** Todos os arquivos `.proto` devem definir tipos semânticos claros e convenções de nomenclatura `PascalCase` para Mensagens e `CamelCase` para campos.
 2. **Propagação de Contexto:** Interceptors gRPC devem obrigatoriamente injetar e extrair metadados W3C (`traceparent`) e Correlation ID (`x-correlation-id`).
 3. **Deadlines & Timeouts:** Todo client gRPC deve definir um deadline explícito (ex: 500ms a 2s) via `context.WithTimeout`.
@@ -115,6 +121,7 @@ fastapi-bff/
    - `codes.ResourceExhausted` para esgotamento de assentos ou rate limit.
 
 ## 4.2 RabbitMQ / AMQP (Assíncrono)
+
 1. **Exchanges e Routing Keys:**
    - Exchanges do tipo `topic` ou `direct` com persistência (`durable: true`).
    - Padrão de Routing Key: `<entidade>.<ação>` (ex: `order.created`, `payment.process`, `notification.send`).
@@ -156,7 +163,8 @@ Cada requisição e mensagem processada **deve** gerar:
 }
 ```
 
-### Regras:
+## Regras
+
 - **Nunca use** `print()` ou `fmt.Println()`.
 - Utilize sempre structured logging (`slog` em Go ou `structlog`/OTel logging em Python).
 - O `trace_id` e `span_id` devem ser linkados automaticamente no Grafana (Log ↔ Trace).
@@ -166,6 +174,7 @@ Cada requisição e mensagem processada **deve** gerar:
 # 7. Checklist de Qualidade e Produção
 
 Antes de considerar um serviço pronto:
+
 - [ ] Contratos de API / Protobuf versionados
 - [ ] Validações de payload rigorosas
 - [ ] OpenTelemetry configurado (OTLP exportando para Mimir, Loki, Tempo)

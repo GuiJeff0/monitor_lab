@@ -12,7 +12,7 @@ data:
       no_network: true                 # Bloqueia qualquer requisição de rede pelo parser
       max_entity_expansions: 0         # Mitiga Billion Laughs / quadratic blowup
       max_request_size_bytes: 1048576  # 1MB limite do payload
-    
+
     # Políticas WS-Security
     ws_security:
       timestamp_ttl_seconds: 300       # Janela de tolerância para mitigar Replay Attacks

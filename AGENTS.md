@@ -87,6 +87,7 @@ Este repositório (`monitor_lab`) gerencia a **Infraestrutura como Código (IaC)
 # Tecnologias Utilizadas
 
 ## Infraestrutura & Orquestração
+
 - **K3s (Kubernetes):** Cluster lightweight de produção rodando containerd.
 - **Terraform:** Provisionamento declarativo de namespaces, StorageClasses e Helm releases.
 - **Portainer CE:** Interface web para gerenciamento de Pods, Deployments e Volumes.
@@ -96,6 +97,7 @@ Este repositório (`monitor_lab`) gerencia a **Infraestrutura como Código (IaC)
 - **SOPS + age:** Criptografia de secrets versionados em Git.
 
 ## Observabilidade (Grafana Stack + OTel)
+
 - **OpenTelemetry SDK:** Instrumentação de aplicações em Go e Python (Métricas, Logs, Traces).
 - **Grafana Mimir:** TSDB escalável com retenção no HDD (`local-hdd`).
 - **Grafana Loki:** Agregador de logs estruturados com índices TSDB e retenção configurável.
@@ -172,6 +174,7 @@ monitor_lab/
 # Roadmap de Implementação
 
 ## Fase 1 — Fundação de Infraestrutura, Observabilidade & GitOps
+
 - [x] Cluster K3s com storage persistente no HDD de 1TB (`/mnt/dados`)
 - [x] Provisionamento declarativo via Terraform
 - [x] Traefik v3 Ingress Controller & Roteamento seguro via Tailscale
@@ -182,26 +185,31 @@ monitor_lab/
 - [x] Criptografia de Secrets com SOPS + age e automação GitOps com Flux CD
 
 ## Fase 2 — Message Broker & Persistência Poliglota (K3s)
+
 - [ ] Subida do cluster RabbitMQ (com UI de Management) no namespace `data`
 - [ ] Instâncias do PostgreSQL, MongoDB e Elasticsearch com PVCs no HDD
 - [ ] Configuração de índices e migrações iniciais
 
 ## Fase 3 — API Gateway (FastAPI BFF) & Autenticação
+
 - [ ] `fastapi-bff` com validação Pydantic, rate limit e cache Redis no namespace `apps`
 - [ ] `auth-service` (Go/gRPC) com geração/validação de JWT e hash bcrypt
 - [ ] Propagação de contexto HTTP ↔ gRPC com OTel SDK
 
 ## Fase 4 — Catálogo de Eventos & Busca Full-Text
+
 - [ ] `event-service` (Go/gRPC) integrado ao MongoDB
 - [ ] `search-sync-worker` (Go/AMQP) sincronizando eventos no Elasticsearch
 - [ ] Caching de catálogo de eventos de alta frequência no Redis
 
 ## Fase 5 — Pipeline de Compra de Ingressos de Alta Concorrência
+
 - [ ] `orders-service` (Go/AMQP/gRPC) com bloqueio pessimista (`SKIP LOCKED`) no PostgreSQL
 - [ ] `payment-service` (Go/AMQP) simulando gateway de pagamento e resiliência
 - [ ] `notification-service` (Go/AMQP) processando notificações e auditoria no MongoDB
 
 ## Fase 6 — Testes de Carga & Validação de Observabilidade
+
 - [ ] Testes de carga massiva com k6 simulando disputa de ingressos (flash sale)
 - [ ] Validação de Trace distribuído ponta a ponta (Cliente → BFF → gRPC → RabbitMQ → PostgreSQL)
 - [ ] Dashboards RED completos no Grafana e alertas em tempo real

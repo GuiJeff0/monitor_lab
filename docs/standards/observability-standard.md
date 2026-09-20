@@ -2,13 +2,13 @@
 
 ## 1. Visão Geral
 
-A observabilidade é um dos pilares fundamentais da nossa arquitetura de microsserviços no **Monitor Lab**. Mais do que apenas monitoramento, a observabilidade nos permite entender o estado interno de nossos sistemas a partir de suas saídas externas. 
+A observabilidade é um dos pilares fundamentais da nossa arquitetura de microsserviços no **Monitor Lab**. Mais do que apenas monitoramento, a observabilidade nos permite entender o estado interno de nossos sistemas a partir de suas saídas externas.
 
 Nossa estratégia baseia-se nos **Três Pilares da Observabilidade**:
 
-1.  **Metrics (Métricas):** Dados quantitativos que nos informam *quando* um problema ocorre. Permitem entender a saúde, a performance e a utilização de recursos através de agregações matemáticas (ex: taxa de erros, p99 de latência).
-2.  **Logs:** Registros textuais e imutáveis de eventos discretos que aconteceram no sistema. Com **Structured Logging** (JSON), nos dizem *o que* ocorreu em detalhes granulares.
-3.  **Traces:** Representação do ciclo de vida completo de uma requisição conforme ela atravessa múltiplos microsserviços. Os traces nos informam *onde* o problema está ocorrendo.
+1. **Metrics (Métricas):** Dados quantitativos que nos informam *quando* um problema ocorre. Permitem entender a saúde, a performance e a utilização de recursos através de agregações matemáticas (ex: taxa de erros, p99 de latência).
+2. **Logs:** Registros textuais e imutáveis de eventos discretos que aconteceram no sistema. Com **Structured Logging** (JSON), nos dizem *o que* ocorreu em detalhes granulares.
+3. **Traces:** Representação do ciclo de vida completo de uma requisição conforme ela atravessa múltiplos microsserviços. Os traces nos informam *onde* o problema está ocorrendo.
 
 A adoção efetiva destes três pilares reduz o *Mean Time to Resolution* (MTTR) e facilita o entendimento do comportamento do sistema em ambientes distribuídos.
 
@@ -119,6 +119,7 @@ trace.set_tracer_provider(provider)
 ### 3.2. Provedores (Providers)
 
 Devemos configurar:
+
 - **TracerProvider**: Para gerenciar o ciclo de vida dos Spans.
 - **MeterProvider**: Para registrar as métricas.
 - **LoggerProvider**: Para garantir que os logs da aplicação saiam com Trace ID e Span ID.
@@ -126,6 +127,7 @@ Devemos configurar:
 ### 3.3. Auto-instrumentation
 
 O uso das bibliotecas oficiais de auto-instrumentação é fortemente recomendado para cobrir:
+
 - `FastAPIInstrumentor`
 - `SQLAlchemyInstrumentor`
 - `HTTPXClientInstrumentor`
@@ -168,6 +170,7 @@ def process_order(order_id: str):
 ### 3.5. Exporters (OTLP)
 
 Por padrão, a telemetria será exportada via gRPC para os respectivos backends, evitando intermediários desnecessários no ambiente de laboratório:
+
 - **Metrics**: `http://mimir:8080` (OTLP ingestion ativo no Mimir)
 - **Logs**: `http://loki:3100` (via otlploghttp ou otlploggrpc, se habilitado, ou via stdout -> Alloy)
 - **Traces**: `http://tempo:4317` (gRPC)
@@ -207,14 +210,19 @@ def create_user(user_data):
 ### 4.3. PromQL Examples
 
 - **RPS (Requests Per Second)**:
+
   ```promql
   sum(rate(http_server_duration_count{service_name="users-api"}[1m])) by (http_route)
   ```
+
 - **P95 Latency**:
+
   ```promql
   histogram_quantile(0.95, sum(rate(http_server_duration_bucket{service_name="users-api"}[5m])) by (le))
   ```
+
 - **Error Rate (%)**:
+
   ```promql
   sum(rate(http_server_duration_count{http_status_code=~"5.."}[5m])) / 
   sum(rate(http_server_duration_count[5m])) * 100
@@ -229,6 +237,7 @@ def create_user(user_data):
 Os logs **NUNCA** devem ser puramente textuais. Eles devem ser emitidos no formato **JSON**, contendo propriedades estruturadas.
 
 Campos obrigatórios (injetados na configuração base):
+
 - `timestamp`: (ISO 8601)
 - `level`: (INFO, ERROR, etc.)
 - `service`: `users-api`
@@ -239,6 +248,7 @@ Campos obrigatórios (injetados na configuração base):
 - Atributos extras de contexto (ex: `user_id`, `path`, `method`).
 
 Exemplo de log ideal:
+
 ```json
 {
   "timestamp": "2026-08-09T14:30:00Z",
@@ -270,14 +280,19 @@ Exemplo de log ideal:
 ### 5.4. LogQL Examples
 
 - Encontrar erros de um serviço:
+
   ```logql
   {service="users-api", level="ERROR"} | json
   ```
+
 - Buscar um trace específico:
+
   ```logql
   {service="orders-api"} | json | trace_id="5b8e...f211"
   ```
+
 - Agregação (Erros por minuto):
+
   ```logql
   sum by (service) (rate({level="ERROR"} [1m]))
   ```
@@ -289,6 +304,7 @@ Exemplo de log ideal:
 ### 6.1. W3C Trace Context
 
 Adotamos integralmente o padrão **W3C Trace Context**. Toda requisição HTTP entre serviços DEVE propagar os headers:
+
 - `traceparent`
 - `tracestate`
 
@@ -297,22 +313,27 @@ O OpenTelemetry se encarrega disso através do `Propagator` (geralmente configur
 ### 6.2. Nomenclatura de Spans (Span Naming Conventions)
 
 O nome do Span deve identificar claramente a operação de forma genérica, sem incluir IDs dinâmicos.
+
 - **Correto**: `GET /users/{id}`, `SQL SELECT users`, `process_payment`
 - **Incorreto**: `GET /users/123`, `Query User 456`
 
 ### 6.3. Atributos Standard
 
 Siga os Semantic Conventions do OTel.
+
 - Bancos: `db.system`, `db.statement`, `db.name`
 - HTTP: `http.method`, `http.route`, `http.status_code`
 
 ### 6.4. TraceQL Examples
 
 - Spans de banco lentos (mais de 500ms):
+
   ```traceql
   { span.db.system = "postgresql" && duration > 500ms }
   ```
+
 - Requisições que falharam:
+
   ```traceql
   { span.http.status_code >= 500 }
   ```
@@ -328,6 +349,7 @@ Grafana Alloy é o nosso coletor unificado.
 Mesmo que as aplicações (FastAPI) mandem OTLP direto para os backends, o Alloy atua coletando logs de containers (stdout/stderr) dos componentes de infraestrutura que não tem OTLP nativo (ex: Traefik, PostgreSQL, Redis) e os envia para o Loki. Ele também faz o *scraping* de métricas Prometheus desses serviços e as envia para o Mimir.
 
 ### 7.2. Responsabilidades do Alloy
+
 - **Docker Logs**: Coletar via socket do Docker.
 - **Node/Infra Metrics**: Scraping de exporter de BDs e do Traefik.
 - Pipeline de *Relabeling*: Garantir que as labels de infra combinem com os `service.name` utilizados pelas apps.
@@ -365,7 +387,7 @@ Alertas devem ser acionáveis. Não crie alertas para "Uso de CPU alto" se isso 
 
 ### 9.2. Alertas Padrão (Mimir / Prometheus Alertmanager)
 
-1. **High Error Rate**: 
+1. **High Error Rate**:
    - Regra: `sum(rate(http_server_duration_count{http_status_code=~"5.."}[5m])) / sum(rate(http_server_duration_count[5m])) > 0.05`
    - Significado: Mais de 5% das requisições nos últimos 5 min falharam.
 2. **High Latency (SLA Violation)**:
@@ -385,16 +407,20 @@ Alertas devem ser acionáveis. Não crie alertas para "Uso de CPU alto" se isso 
 Todo microsserviço precisa de visibilidade.
 
 ### 10.1. RED Metrics Dashboard
+
 O padrão Ouro para serviços Request/Driven:
+
 - **Rate**: Request per second.
 - **Errors**: Error rate (% e absoluto).
 - **Duration**: P50, P90, P95, P99 em milissegundos.
 
 ### 10.2. Infra Dashboard
+
 - Uso de CPU, Memória, I/O do Container (Alloy / cAdvisor).
 - Conexões de banco abertas, Pool de conexões do SQLAlchemy.
 
 ### 10.3. Business Dashboard
+
 Painel dedicado aos KPIs do negócio, alimentado pelas métricas OTel customizadas e consultas SQL se necessário.
 
 ---

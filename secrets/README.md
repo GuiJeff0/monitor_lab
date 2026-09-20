@@ -12,11 +12,13 @@ Este diretório gerencia os Kubernetes Secrets criptografados para o cluster K3s
 ## Comandos Rápidos
 
 ### 1. Gerar Chave age (se ainda não fez)
+
 ```bash
 sudo ./scripts/sops-keygen.sh
 ```
 
 ### 2. Criptografar um arquivo de Secret
+
 ```bash
 # Cria o secret a partir do template
 cp secrets/templates/grafana-secret.yaml secrets/grafana.enc.yaml
@@ -26,13 +28,15 @@ sops -e -i secrets/grafana.enc.yaml
 ```
 
 ### 3. Editar um Secret criptografado diretamente
+
 ```bash
 sops secrets/grafana.enc.yaml
 ```
+
 *(O SOPS abre o seu editor padrão `$EDITOR`, decripta para edição e recriptografa automaticamente ao salvar)*
 
 ### 4. Visualizar o conteúdo decriptado
+
 ```bash
 sops -d secrets/grafana.enc.yaml
 ```
-

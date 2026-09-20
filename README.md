@@ -4,7 +4,7 @@ Infraestrutura de observabilidade e orquestração cloud-native de nível empres
 
 ---
 
-### 🏛️ Visão Geral da Arquitetura
+## 🏛️ Visão Geral da Arquitetura
 
 ```text
                           Clientes (Web / Mobile / Tailscale Peers)

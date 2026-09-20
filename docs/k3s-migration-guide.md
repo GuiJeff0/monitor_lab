@@ -77,29 +77,36 @@ monitor_lab/
 Execute os comandos abaixo diretamente no terminal do servidor:
 
 ### Passo 1: Montar o HDD de 1TB de forma permanente
+
 ```bash
 cd /var/www/projects/monitor_lab
 sudo ./scripts/mount-hdd.sh
 ```
+
 *Isso verifica `/dev/sda1`, formata como `ext4` se necessário, monta em `/mnt/dados` e adiciona ao `/etc/fstab` com a pasta `/mnt/dados/k3s-storage` pronta.*
 
 ---
 
 ### Passo 2: Instalar as Ferramentas de DevOps
+
 ```bash
 sudo ./scripts/bootstrap-tools.sh
 ```
+
 *Instala: `kubectl`, `helm`, `terraform`, `age`, `sops` e `flux`.*
 
 ---
 
 ### Passo 3: Instalar o K3s
+
 ```bash
 sudo ./scripts/install-k3s.sh
 ```
+
 *Instala o K3s configurando o armazenamento padrão no HDD de 1TB, desabilitando o Traefik embutido (usaremos a versão v3 via Terraform) e exportando o `kubeconfig` para `~/.kube/config`.*
 
 Verifique o nó:
+
 ```bash
 kubectl get nodes -o wide
 ```
@@ -107,12 +114,15 @@ kubectl get nodes -o wide
 ---
 
 ### Passo 4: Gerar a Chave de Criptografia de Secrets (SOPS + age)
+
 ```bash
 ./scripts/sops-keygen.sh
 ```
+
 *Gera sua chave privada em `~/.config/sops/age/keys.txt` e atualiza o `secrets/.sops.yaml` com a sua chave pública.*
 
 Para criar e criptografar o primeiro secret:
+
 ```bash
 cp secrets/templates/grafana-secret.yaml secrets/grafana.enc.yaml
 sops -e -i secrets/grafana.enc.yaml
@@ -121,6 +131,7 @@ sops -e -i secrets/grafana.enc.yaml
 ---
 
 ### Passo 5: Provisionar a Infraestrutura com Terraform
+
 ```bash
 cd /var/www/projects/monitor_lab/terraform
 terraform init
@@ -131,6 +142,7 @@ terraform apply -auto-approve
 ---
 
 ### Passo 6: Aplicar Manifests e IngressRoutes
+
 ```bash
 cd /var/www/projects/monitor_lab
 kubectl apply -f k8s/ingress/
@@ -155,6 +167,6 @@ Uma vez provisionado, acesse os serviços na sua Tailnet:
 ## 🔒 Segredos no GitHub Actions para CI/CD
 
 No repositório do GitHub (`Settings > Secrets and variables > Actions`), configure:
+
 - `DOCKERHUB_USERNAME`: Seu usuário do Docker Hub
 - `DOCKERHUB_TOKEN`: Seu Personal Access Token (PAT) do Docker Hub
-

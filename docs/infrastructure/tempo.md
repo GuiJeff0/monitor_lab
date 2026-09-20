@@ -17,9 +17,10 @@ graph TD
 
 O Tempo funciona lendo um arquivo manifesto simples: o `tempo.yml`. Como as outras stacks do lab, roda no modo *single-binary* (*monolith*) de fácil gestão, concentrando coletores e compiladores num único processo.
 
-Um bloco fundamental de configuração no Tempo são os **Receivers**. Eles dizem por quais portas e quais protocolos ele espera o recebimento dos Traces (spans). 
+Um bloco fundamental de configuração no Tempo são os **Receivers**. Eles dizem por quais portas e quais protocolos ele espera o recebimento dos Traces (spans).
 
 Para o nosso cenário adotamos o padrão absoluto de mercado OTLP, ativando tanto o protocolo gRPC (porta `4317`) quanto o HTTP (porta `4318`):
+
 ```yaml
 distributor:
   receivers:
@@ -33,7 +34,7 @@ distributor:
 
 ## 3. Ingestão de Dados
 
-O Tempo aceita a família de protocolos (Jaeger, Zipkin), porém no contexto do laboratório moderno o OTel SDK envia nativamente na porta `4317` gRPC. 
+O Tempo aceita a família de protocolos (Jaeger, Zipkin), porém no contexto do laboratório moderno o OTel SDK envia nativamente na porta `4317` gRPC.
 Toda vez que a `users-api` recebe um GET, o middleware OpenTelemetry cria um Span. Esse Span possui início, fim, e uma lista de atributos capturados (SQL querie executada, código HTTP retornado). Ao finalizar a requisição, esse Span é serializado e feito push direto para o Tempo.
 
 ## 4. Consultas com TraceQL
@@ -43,27 +44,30 @@ Originalmente o Tempo foi projetado apenas para buscas pontuais onde você já p
 O TraceQL permite pesquisar a teia de dados complexos:
 
 1. **Buscar todos os Traces de um serviço que duraram mais de 1 segundo:**
+
    ```traceql
    { resource.service.name = "users-api" && duration > 1s }
    ```
 
 2. **Buscar Traces que terminaram num código de Erro:**
+
    ```traceql
    { status = error }
    ```
 
 3. **Buscar uma rota específica que tenha dependência numa tabela SQL:**
+
    ```traceql
    { http.target = "/users" } >> { db.statement =~ ".*SELECT.*" }
    ```
 
 ## 5. Metrics Generator (Service Graphs)
 
-Uma das magias mais interessantes do Tempo moderno documentadas neste lab é o **Metrics Generator**. 
-Geralmente, desenhar um mapa das dependências e serviços (Service Graph) e deduzir a latência do sistema exigiria instrumentar as próprias aplicações. 
-No entanto, o Tempo, por examinar a vida e o fluxo de todos os *spans* trafegados, consegue inferir o comportamento de saúde de todo o ambiente de forma nativa. 
+Uma das magias mais interessantes do Tempo moderno documentadas neste lab é o **Metrics Generator**.
+Geralmente, desenhar um mapa das dependências e serviços (Service Graph) e deduzir a latência do sistema exigiria instrumentar as próprias aplicações.
+No entanto, o Tempo, por examinar a vida e o fluxo de todos os *spans* trafegados, consegue inferir o comportamento de saúde de todo o ambiente de forma nativa.
 
-Ele pega essas informações processadas (quantas chamadas entre A e B, tempo médio), gera uma série temporal delas (RED metrics: *Rate, Errors, Duration*), e a repassa para um sistema de métricas usando `remote_write`. 
+Ele pega essas informações processadas (quantas chamadas entre A e B, tempo médio), gera uma série temporal delas (RED metrics: *Rate, Errors, Duration*), e a repassa para um sistema de métricas usando `remote_write`.
 No nosso sistema, o Tempo processa isso e exporta para o `Mimir`. Isso permite ao Grafana desenhar o mapa de serviços da arquitetura 100% de graça, sem esforço de instrumentação extra do dev.
 
 ## 6. Storage
@@ -82,6 +86,7 @@ O Datasource do Tempo conecta na URL `http://tempo:3200`.
 ## 8. Integração com OpenTelemetry (OTel SDK)
 
 A peça que falta no lado do servidor em Python (FastAPI):
+
 ```python
 from opentelemetry.exporter.otlp.proto.grpc.trace_exporter import OTLPSpanExporter
 from opentelemetry.sdk.trace.export import BatchSpanProcessor

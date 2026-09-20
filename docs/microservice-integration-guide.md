@@ -48,6 +48,7 @@ Para que uma requisição possa ser rastreada do início ao fim através de múl
 ## 🐹 3. Implementação em Golang (gRPC + HTTP + AMQP)
 
 ### 3.1 Dependências Go
+
 ```bash
 go get go.opentelemetry.io/otel \
        go.opentelemetry.io/otel/sdk \
@@ -58,167 +59,171 @@ go get go.opentelemetry.io/otel \
 ```
 
 ### 3.2 Inicialização do Tracer Provider (`telemetry.go`)
+
 ```go
 package telemetry
 
 import (
-	"context"
-	"os"
+ "context"
+ "os"
 
-	"go.opentelemetry.io/otel"
-	"go.opentelemetry.io/otel/exporters/otlp/otlptrace/otlptracegrpc"
-	"go.opentelemetry.io/otel/propagation"
-	"go.opentelemetry.io/otel/sdk/resource"
-	sdktrace "go.opentelemetry.io/otel/sdk/trace"
-	semconv "go.opentelemetry.io/otel/semconv/v1.26.0"
-	"google.golang.org/grpc"
-	"google.golang.org/grpc/credentials/insecure"
+ "go.opentelemetry.io/otel"
+ "go.opentelemetry.io/otel/exporters/otlp/otlptrace/otlptracegrpc"
+ "go.opentelemetry.io/otel/propagation"
+ "go.opentelemetry.io/otel/sdk/resource"
+ sdktrace "go.opentelemetry.io/otel/sdk/trace"
+ semconv "go.opentelemetry.io/otel/semconv/v1.26.0"
+ "google.golang.org/grpc"
+ "google.golang.org/grpc/credentials/insecure"
 )
 
 func InitTelemetry(ctx context.Context, serviceName string) (*sdktrace.TracerProvider, error) {
-	endpoint := os.Getenv("OTEL_EXPORTER_OTLP_ENDPOINT")
-	if endpoint == "" {
-		endpoint = "alloy.observability.svc.cluster.local:4317"
-	}
+ endpoint := os.Getenv("OTEL_EXPORTER_OTLP_ENDPOINT")
+ if endpoint == "" {
+  endpoint = "alloy.observability.svc.cluster.local:4317"
+ }
 
-	// 1. Configura o exportador OTLP via gRPC
-	exporter, err := otlptracegrpc.New(ctx,
-		otlptracegrpc.WithInsecure(),
-		otlptracegrpc.WithEndpoint(endpoint),
-		otlptracegrpc.WithDialOption(grpc.WithTransportCredentials(insecure.NewCredentials())),
-	)
-	if err != nil {
-		return nil, err
-	}
+ // 1. Configura o exportador OTLP via gRPC
+ exporter, err := otlptracegrpc.New(ctx,
+  otlptracegrpc.WithInsecure(),
+  otlptracegrpc.WithEndpoint(endpoint),
+  otlptracegrpc.WithDialOption(grpc.WithTransportCredentials(insecure.NewCredentials())),
+ )
+ if err != nil {
+  return nil, err
+ }
 
-	// 2. Metadados do recurso (nome do serviço)
-	res, err := resource.New(ctx,
-		resource.WithAttributes(
-			semconv.ServiceNameKey.String(serviceName),
-			semconv.ServiceVersionKey.String("1.0.0"),
-		),
-	)
-	if err != nil {
-		return nil, err
-	}
+ // 2. Metadados do recurso (nome do serviço)
+ res, err := resource.New(ctx,
+  resource.WithAttributes(
+   semconv.ServiceNameKey.String(serviceName),
+   semconv.ServiceVersionKey.String("1.0.0"),
+  ),
+ )
+ if err != nil {
+  return nil, err
+ }
 
-	// 3. Provedor de Trace com Batching
-	tp := sdktrace.NewTracerProvider(
-		sdktrace.WithBatcher(exporter),
-		sdktrace.WithResource(res),
-		sdktrace.WithSampler(sdktrace.AlwaysSample()), // 100% amostragem em dev/lab
-	)
-	otel.SetTracerProvider(tp)
+ // 3. Provedor de Trace com Batching
+ tp := sdktrace.NewTracerProvider(
+  sdktrace.WithBatcher(exporter),
+  sdktrace.WithResource(res),
+  sdktrace.WithSampler(sdktrace.AlwaysSample()), // 100% amostragem em dev/lab
+ )
+ otel.SetTracerProvider(tp)
 
-	// 4. Configura os propagadores W3C padrão globalmente
-	otel.SetTextMapPropagator(propagation.NewCompositeTextMapPropagator(
-		propagation.TraceContext{},
-		propagation.Baggage{},
-	))
+ // 4. Configura os propagadores W3C padrão globalmente
+ otel.SetTextMapPropagator(propagation.NewCompositeTextMapPropagator(
+  propagation.TraceContext{},
+  propagation.Baggage{},
+ ))
 
-	return tp, nil
+ return tp, nil
 }
 ```
 
 ### 3.3 Instrumentação de Servidor e Cliente gRPC
+
 ```go
 import (
-	"go.opentelemetry.io/contrib/instrumentation/google.golang.org/grpc/otelgrpc"
-	"google.golang.org/grpc"
+ "go.opentelemetry.io/contrib/instrumentation/google.golang.org/grpc/otelgrpc"
+ "google.golang.org/grpc"
 )
 
 // No Servidor gRPC:
 func StartGRPCServer() {
-	server := grpc.NewServer(
-		grpc.StatsHandler(otelgrpc.NewServerHandler()), // Tracing automático de todas as chamadas
-	)
-	// Registre seus serviços aqui...
+ server := grpc.NewServer(
+  grpc.StatsHandler(otelgrpc.NewServerHandler()), // Tracing automático de todas as chamadas
+ )
+ // Registre seus serviços aqui...
 }
 
 // No Cliente gRPC:
 func NewGRPCClient(target string) (*grpc.ClientConn, error) {
-	return grpc.NewClient(target,
-		grpc.WithTransportCredentials(insecure.NewCredentials()),
-		grpc.WithStatsHandler(otelgrpc.NewClientHandler()), // Injeta trace context automaticamente
-	)
+ return grpc.NewClient(target,
+  grpc.WithTransportCredentials(insecure.NewCredentials()),
+  grpc.WithStatsHandler(otelgrpc.NewClientHandler()), // Injeta trace context automaticamente
+ )
 }
 ```
 
 ### 3.4 Criando Spans Manuais e Registrando Erros
+
 ```go
 import (
-	"go.opentelemetry.io/otel"
-	"go.opentelemetry.io/otel/attribute"
-	"go.opentelemetry.io/otel/codes"
+ "go.opentelemetry.io/otel"
+ "go.opentelemetry.io/otel/attribute"
+ "go.opentelemetry.io/otel/codes"
 )
 
 func ProcessOrder(ctx context.Context, orderID string) error {
-	tracer := otel.Tracer("orders-service")
-	ctx, span := tracer.Start(ctx, "ProcessOrder")
-	defer span.End()
+ tracer := otel.Tracer("orders-service")
+ ctx, span := tracer.Start(ctx, "ProcessOrder")
+ defer span.End()
 
-	// Adicione atributos de negócio (anonimizados, sem senhas/cartões)
-	span.SetAttributes(
-		attribute.String("order.id", orderID),
-		attribute.String("db.system", "postgresql"),
-	)
+ // Adicione atributos de negócio (anonimizados, sem senhas/cartões)
+ span.SetAttributes(
+  attribute.String("order.id", orderID),
+  attribute.String("db.system", "postgresql"),
+ )
 
-	if err := db.Save(ctx, orderID); err != nil {
-		// Registra o erro no span para aparecer vermelho no Grafana
-		span.RecordError(err)
-		span.SetStatus(codes.Error, err.Error())
-		return err
-	}
+ if err := db.Save(ctx, orderID); err != nil {
+  // Registra o erro no span para aparecer vermelho no Grafana
+  span.RecordError(err)
+  span.SetStatus(codes.Error, err.Error())
+  return err
+ }
 
-	return nil
+ return nil
 }
 ```
 
 ### 3.5 Propagação de Trace via RabbitMQ (AMQP)
+
 ```go
 import (
-	"context"
-	amqp "github.com/rabbitmq/amqp091-go"
-	"go.opentelemetry.io/otel"
-	"go.opentelemetry.io/otel/propagation"
+ "context"
+ amqp "github.com/rabbitmq/amqp091-go"
+ "go.opentelemetry.io/otel"
+ "go.opentelemetry.io/otel/propagation"
 )
 
 // Ao Publicar: Injeta o Trace Context nos headers da mensagem AMQP
 func PublishMessage(ctx context.Context, ch *amqp.Channel, body []byte) error {
-	headers := make(amqp.Table)
-	propagator := otel.GetTextMapPropagator()
-	propagator.Inject(ctx, &amqpTableCarrier{headers})
+ headers := make(amqp.Table)
+ propagator := otel.GetTextMapPropagator()
+ propagator.Inject(ctx, &amqpTableCarrier{headers})
 
-	return ch.PublishWithContext(ctx, "events", "order.created", false, false, amqp.Publishing{
-		ContentType: "application/json",
-		Headers:     headers,
-		Body:        body,
-	})
+ return ch.PublishWithContext(ctx, "events", "order.created", false, false, amqp.Publishing{
+  ContentType: "application/json",
+  Headers:     headers,
+  Body:        body,
+ })
 }
 
 // Ao Consumir: Extrai o Trace Context para continuar o mesmo trace
 func ConsumeMessage(ctx context.Context, msg amqp.Delivery) {
-	propagator := otel.GetTextMapPropagator()
-	ctx = propagator.Extract(ctx, &amqpTableCarrier{msg.Headers})
+ propagator := otel.GetTextMapPropagator()
+ ctx = propagator.Extract(ctx, &amqpTableCarrier{msg.Headers})
 
-	tracer := otel.Tracer("order-worker")
-	ctx, span := tracer.Start(ctx, "HandleOrderCreated")
-	defer span.End()
+ tracer := otel.Tracer("order-worker")
+ ctx, span := tracer.Start(ctx, "HandleOrderCreated")
+ defer span.End()
 
-	// Seu processamento de negócio continua sob o mesmo Trace ID!
+ // Seu processamento de negócio continua sob o mesmo Trace ID!
 }
 
 // Adaptador TextMapCarrier para amqp.Table
 type amqpTableCarrier struct{ amqp.Table }
 func (c *amqpTableCarrier) Get(key string) string {
-	if v, ok := c.Table[key]; ok { return v.(string) }
-	return ""
+ if v, ok := c.Table[key]; ok { return v.(string) }
+ return ""
 }
 func (c *amqpTableCarrier) Set(key, val string) { c.Table[key] = val }
 func (c *amqpTableCarrier) Keys() []string {
-	keys := make([]string, 0, len(c.Table))
-	for k := range c.Table { keys = append(keys, k) }
-	return keys
+ keys := make([]string, 0, len(c.Table))
+ for k := range c.Table { keys = append(keys, k) }
+ return keys
 }
 ```
 
@@ -227,6 +232,7 @@ func (c *amqpTableCarrier) Keys() []string {
 ## 🐍 4. Implementação em Python (FastAPI)
 
 ### 4.1 Dependências Python
+
 ```bash
 pip install opentelemetry-api \
             opentelemetry-sdk \
@@ -236,6 +242,7 @@ pip install opentelemetry-api \
 ```
 
 ### 4.2 Inicialização no FastAPI (`main.py`)
+
 ```python
 import os
 import uuid
@@ -378,6 +385,7 @@ O ecossistema utiliza o modelo **GitOps Centralizado (Padrão de Mercado)** para
 ```
 
 ### 6.1 Criando o Manifesto no `monitor_lab` com o Script Scaffold
+
 Para provisionar um novo microsserviço no cluster de forma instantânea, execute na raiz do `monitor_lab`:
 
 ```bash
@@ -391,11 +399,13 @@ Para provisionar um novo microsserviço no cluster de forma instantânea, execut
 ```
 
 O script cria automaticamente:
+
 1. A pasta `k8s/apps/<servico>/deployment.yaml` com as variáveis de ambiente OpenTelemetry injetadas.
 2. O Service do Kubernetes na porta correta.
 3. O registro automático do manifesto no `k8s/kustomization.yaml`.
 
 Após rodar o script, commite no `monitor_lab`:
+
 ```bash
 git add k8s/apps/<servico> k8s/kustomization.yaml
 git commit -m "feat(k8s): add <servico> deployment manifest"
@@ -405,6 +415,7 @@ git push origin main
 ---
 
 ### 6.2 Gerando o GitHub Personal Access Token (PAT)
+
 Para permitir que o GitHub Actions do microsserviço atualize a tag da imagem no `monitor_lab`:
 
 1. No GitHub, acesse **Settings** > **Developer Settings** > **Personal access tokens** > **Fine-grained tokens**.
@@ -417,6 +428,7 @@ Para permitir que o GitHub Actions do microsserviço atualize a tag da imagem no
 ---
 
 ### 6.3 Configurando os Secrets no Repositório do Microsserviço
+
 No repositório do microsserviço (ex: `auth-service`), acesse **Settings** > **Secrets and variables** > **Actions** e crie os três segredos:
 
 | Secret | Descrição | Exemplo |
@@ -428,6 +440,7 @@ No repositório do microsserviço (ex: `auth-service`), acesse **Settings** > **
 ---
 
 ### 6.4 Adicionando o Pipeline CI/CD no Microsserviço
+
 Copie o template `templates/microservice-ci-cd.yml` para `.github/workflows/ci-cd.yml` dentro do repositório do seu microsserviço:
 
 ```yaml
@@ -496,6 +509,7 @@ jobs:
 ---
 
 ### 6.5 Procedimento de Rollback
+
 Se uma versão implantada apresentar instabilidade ou erros críticos:
 
 1. **Rollback via Git (Recomendado):**
@@ -504,6 +518,7 @@ Se uma versão implantada apresentar instabilidade ou erros críticos:
    - O Flux CD detectará a reversão e restaurará a versão anterior do Pod em até 60 segundos com zero downtime.
 
 2. **Rollback de Emergência via CLI (`kubectl`):**
+
    ```bash
    kubectl rollout undo deployment/<servico> -n apps
    ```
@@ -522,4 +537,3 @@ Se uma versão implantada apresentar instabilidade ou erros críticos:
    - Você verá exatamente cada etapa da requisição, duração de cada span e chamadas de banco de dados.
    - Clique na aba **Node Graph** para ver o gráfico interativo de conexões entre os microsserviços.
    - Clique no botão **Logs for this span** para abrir na hora os logs no Loki filtrados pelo `TraceID` correspondente.
-

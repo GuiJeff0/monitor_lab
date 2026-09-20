@@ -169,4 +169,3 @@ Cada requisição gera dados nos **3 pilares da observabilidade**:
 
 > [!NOTE]
 > Essa separação garante que escritas e consultas massivas de logs e métricas não degradem o SSD do sistema operacional nem esgotem o espaço da raiz.
-

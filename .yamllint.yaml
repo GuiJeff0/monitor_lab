@@ -1,0 +1,50 @@
+# Yamllint configuration for Kubernetes & GitHub Actions
+# Reference: https://yamllint.readthedocs.io/
+
+yaml-files:
+  - "*.yaml"
+  - "*.yml"
+
+rules:
+  # Relax line length for Kubernetes manifests and configurations
+  line-length:
+    max: 200
+    level: warning
+    allow-non-breakable-words: true
+    allow-non-breakable-inline-mappings: true
+
+  # Document start (---) is optional in Kubernetes manifests and GitHub Actions
+  document-start: disable
+
+  # Truthy check disabled to support GitHub Actions `on:` syntax
+  truthy: disable
+
+  # Allow standard comments
+  comments:
+    min-spaces-from-content: 1
+
+  # Indentation
+  indentation:
+    spaces: consistent
+    indent-sequences: consistent
+
+  # Trailing spaces
+  trailing-spaces:
+    level: warning
+
+  # Empty lines at end of file
+  empty-lines:
+    max: 2
+    max-end: 1
+
+  # Braces spacing
+  braces:
+    min-spaces-inside: 0
+    max-spaces-inside: 1
+
+ignore:
+  - ".git/"
+  - "**/.terraform/"
+  - "**/*.enc.yaml"
+  - "**/*.enc.yml"
+  - "node_modules/"

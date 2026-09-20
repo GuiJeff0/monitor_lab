@@ -2,9 +2,10 @@
 
 ## 1. Visão Geral
 
-O **Traefik** é o componente central de roteamento do Observability Lab. Ele atua como um *Reverse Proxy* e *API Gateway* moderno e dinâmico, projetado especificamente para microsserviços. 
+O **Traefik** é o componente central de roteamento do Observability Lab. Ele atua como um *Reverse Proxy* e *API Gateway* moderno e dinâmico, projetado especificamente para microsserviços.
 
 No contexto da nossa infraestrutura, o Traefik é responsável por:
+
 - **Reverse Proxy**: Receber todas as requisições externas e roteá-las para os serviços internos corretos (containers Docker).
 - **API Gateway**: Centralizar configurações de segurança, rate limiting e autenticação antes que a requisição chegue ao microsserviço.
 - **Service Discovery**: Detectar automaticamente novos microsserviços à medida que são iniciados no Docker, sem a necessidade de reconfiguração manual.
@@ -26,11 +27,13 @@ A configuração estática é definida primariamente no arquivo `traefik.yml` e 
 ### Entrypoints
 
 Os *Entrypoints* definem as portas de rede onde o Traefik escutará as requisições recebidas.
+
 - **web**: Escuta na porta `80` (HTTP). Ponto de entrada padrão para o tráfego da rede Tailscale.
 - **websecure**: Escuta na porta `443` (HTTPS). Ponto de entrada seguro.
 - **traefik**: Escuta na porta `8080`. Reservado para o acesso ao *Dashboard* interno e à API de métricas do próprio Traefik.
 
 Exemplo de configuração estática (`traefik.yml`):
+
 ```yaml
 entryPoints:
   web:
@@ -67,15 +70,19 @@ No ambiente com Tailscale VPN, todo o tráfego que trafega entre os nós da rede
 Caso deseje ter o "cadeado verde" (HTTPS) no navegador para o domínio Tailscale:
 
 1. **Tailscale Serve (Recomendado):** O próprio daemon do Tailscale no servidor obtém e renova certificados Let's Encrypt automaticamente para `*.ts.net`. Basta rodar no host:
+
    ```bash
    tailscale serve --bg 80
    ```
+
    Isso expõe `https://<node-name>.<tailnet>.ts.net` na porta 443 do Tailscale e repassa o tráfego para a porta 80 do Traefik de forma transparente.
 
 2. **Tailscale Cert no Traefik:** Gerar o par de chaves com:
+
    ```bash
    tailscale cert <node-name>.<tailnet>.ts.net
    ```
+
    Mover os arquivos para `traefik/certificates/` e habilitar no `traefik/dynamic/tls.yml`.
 
 ## 5. Service Discovery
@@ -96,8 +103,9 @@ Os Middlewares no Traefik manipulam a requisição ou a resposta. Exemplos aplic
 
 ## 7. Health Checks
 
-Para evitar encaminhar tráfego para instâncias não saudáveis, o sistema de roteamento confia em *Health Checks*. 
+Para evitar encaminhar tráfego para instâncias não saudáveis, o sistema de roteamento confia em *Health Checks*.
 No ecossistema Traefik + Docker:
+
 1. **Container Health Checks (Docker)**: O Docker realiza a checagem do container. Quando configurado corretamente, o Traefik apenas envia tráfego para containers classificados como "healthy".
 2. **Traefik Health Probes**: Opcionalmente, pode-se configurar o Traefik para bater num endpoint de health check do container.
 
@@ -115,13 +123,16 @@ O Dashboard do Traefik fornece uma interface web interativa para inspeção e de
 ### Credenciais Padrão e Customização
 
 O ambiente local vem pré-configurado com as credenciais padrão de desenvolvimento:
+
 - **Usuário**: `admin`
 - **Senha**: `admin`
 
 Para alterar ou adicionar novos usuários, gere um novo hash htpasswd:
+
 ```bash
 htpasswd -nb <usuario> <senha>
 ```
+
 E adicione a linha resultante na lista `users` do middleware `dashboard-auth` em `traefik/dynamic/dashboard.yml`:
 
 ```yaml
@@ -157,6 +168,7 @@ services:
       - "traefik.http.routers.users.entrypoints=web,websecure"
       - "traefik.http.services.users.loadbalancer.server.port=8000"
 ```
+
 Quando o container é iniciado, a rota `/users` é dinamicamente criada e repassada para a porta interna 8000 do container.
 
 ## 10. Métricas
@@ -164,6 +176,7 @@ Quando o container é iniciado, a rota `/users` é dinamicamente criada e repass
 Visibilidade de borda é crucial. O Traefik expõe métricas internas como contagem de requisições totais, tempos de resposta de roteamento e taxas de erro diretamente no formato Prometheus.
 
 No arquivo `traefik.yml`, habilitamos o módulo de métricas:
+
 ```yaml
 metrics:
   prometheus:
@@ -171,6 +184,7 @@ metrics:
     addRoutersLabels: true
     addServicesLabels: true
 ```
+
 O **Grafana Alloy** raspa essas métricas periodicamente via `traefik:8080/metrics` e envia para o Grafana Mimir.
 
 ## 11. Troubleshooting

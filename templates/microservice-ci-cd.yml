@@ -1,7 +1,7 @@
 # ==============================================================================
 # Template de Workflow GitHub Actions para Repositório de Microsserviço
 # Arquivo: .github/workflows/ci-cd.yml
-# 
+#
 # Este workflow realiza:
 #   1. Testes automatizados da aplicação
 #   2. Build da imagem Docker com tags imutáveis (:sha-<commit> e :latest)

@@ -46,19 +46,24 @@ flowchart TD
 # 3. Propagação de Contexto por Protocolo
 
 ## 3.1 HTTP (FastAPI BFF & Traefik)
+
 - **Headers Recebidos:** `traceparent`, `X-Correlation-ID`.
 - Se `X-Correlation-ID` não existir na entrada, o BFF gera um novo `uuid.uuid4()`.
 - O OTel SDK extrai o `traceparent` e inicia o root span ou child span.
 - O header `X-Correlation-ID` é retornado em todas as respostas HTTP para o cliente.
 
 ## 3.2 gRPC (Comunicação Síncrona Go)
+
 - **Injeção (Python Client):**
+
   ```python
   from opentelemetry.propagate import inject
   metadata = [("x-correlation-id", correlation_id)]
   inject(metadata) # Injeta traceparent nos metadados gRPC
   ```
+
 - **Extração (Go Server Interceptor):**
+
   ```go
   // Interceptor gRPC extrai traceparent do metadata do contexto
   propagator := otel.GetTextMapPropagator()
@@ -66,7 +71,9 @@ flowchart TD
   ```
 
 ## 3.3 RabbitMQ / AMQP (Comunicação Assíncrona Go/Python)
+
 - **Injeção de Headers no Publisher:**
+
   ```python
   headers = {
       "X-Correlation-ID": correlation_id,
@@ -77,7 +84,9 @@ flowchart TD
       routing_key="order.created"
   )
   ```
+
 - **Extração de Headers no Consumer (Go):**
+
   ```go
   // Consumer Go extrai traceparent do headers map AMQP
   carrier := AMQPHeaderCarrier(delivery.Headers)

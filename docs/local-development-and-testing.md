@@ -7,6 +7,7 @@ Este guia explica como testar, depurar e validar serviços rodando no cluster K3
 ## 1. Conexão e Acesso ao Cluster
 
 ### Acesso via Tailscale (Recomendado)
+
 Se a sua máquina de desenvolvimento estiver na mesma rede Tailnet, você tem acesso direto aos serviços utilizando o endereço MagicDNS do servidor:
 
 | Serviço | URL | Credenciais Padrão |
@@ -22,7 +23,8 @@ Se a sua máquina de desenvolvimento estiver na mesma rede Tailnet, você tem ac
 
 Para testar serviços internos que **não estão expostos** via Ingress (por exemplo: PostgreSQL, MongoDB, Mimir, Loki, Tempo):
 
-### Redirecionamento de Portas para sua Máquina Local:
+### Redirecionamento de Portas para sua Máquina Local
+
 ```bash
 # Redirecionar o Mimir (Prometheus/TSDB) para porta 8080 local:
 kubectl port-forward -n observability svc/mimir 8080:8080
@@ -41,13 +43,15 @@ kubectl port-forward -n data svc/postgres 5432:5432
 
 ## 3. Testando Endpoints via `curl` no Terminal
 
-### Teste de Saúde do Grafana:
+### Teste de Saúde do Grafana
+
 ```bash
 curl -s http://localhost/grafana/api/health
 # Resposta esperada: {"database": "ok", "version": "..."}
 ```
 
-### Teste de Prontidão do Mimir:
+### Teste de Prontidão do Mimir
+
 ```bash
 curl -s http://mimir.observability.svc.cluster.local:8080/ready
 # ou via port-forward:
@@ -55,7 +59,8 @@ curl -s http://localhost:8080/ready
 # Resposta esperada: ready
 ```
 
-### Teste de Prontidão do Loki:
+### Teste de Prontidão do Loki
+
 ```bash
 curl -s http://loki.observability.svc.cluster.local:3100/ready
 # Resposta esperada: ready
@@ -65,7 +70,8 @@ curl -s http://loki.observability.svc.cluster.local:3100/ready
 
 ## 4. Como Executar Comandos e Depurar Dentro de Pods
 
-### Abrir um terminal interativo dentro de um Pod:
+### Abrir um terminal interativo dentro de um Pod
+
 ```bash
 # Listar pods
 kubectl get pods -A
@@ -74,7 +80,8 @@ kubectl get pods -A
 kubectl exec -it -n apps <NOME_DO_POD> -- /bin/sh
 ```
 
-### Fazer requisições de rede dentro do cluster para testar DNS:
+### Fazer requisições de rede dentro do cluster para testar DNS
+
 ```bash
 # Executar um curl temporário dentro do cluster
 kubectl run debug-curl --rm -i --tty --image=curlimages/curl -- /bin/sh
@@ -88,7 +95,8 @@ curl -I http://loki.observability.svc.cluster.local:3100/ready
 
 ## 5. Visualizando Logs e Métricas Locais
 
-### Logs ao vivo pelo terminal:
+### Logs ao vivo pelo terminal
+
 ```bash
 # Logs do coletor Alloy:
 kubectl logs -n observability daemonset/alloy -f
@@ -100,10 +108,12 @@ kubectl logs -n ingress deployment/traefik -f
 kubectl logs -n apps deployment/fastapi-bff -f
 ```
 
-### Acompanhando Métricas no Grafana:
+### Acompanhando Métricas no Grafana
+
 1. Abra `http://<SEU_TAILSCALE_HOST>/grafana/explore`.
 2. Selecione a fonte de dados **Mimir**.
 3. Rode consultas PromQL de teste:
+
    ```promql
    # Taxa de requisições HTTP do Traefik
    rate(traefik_service_requests_total[1m])
@@ -111,4 +121,3 @@ kubectl logs -n apps deployment/fastapi-bff -f
    # Uso de CPU dos pods
    sum by (pod) (rate(container_cpu_usage_seconds_total[1m]))
    ```
-

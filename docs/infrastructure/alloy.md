@@ -27,10 +27,12 @@ Cada componente tem um propósito de entrada, processamento, ou saída, e eles i
 Um dos pontos mais fortes do Alloy é sua inteligência em orquestração. Não há necessidade de configurar um *Logstash* ou ficar montando caminhos obscuros de disco do Docker.
 
 Utilizando componentes nativos:
+
 1. `discovery.docker`: O Alloy é instruído a conectar no socket do daemon do Docker e auto-descobrir os containers da máquina hospedeira.
 2. `loki.source.docker`: O Alloy começa a rastrear (tail) o stdout/stderr dos containers descobertos e atacha as informações essenciais como labels (ex: nome do container, namespace/compose-project, tag da imagem).
 
 Exemplo River:
+
 ```river
 discovery.docker "lab_containers" {
     host = "unix:///var/run/docker.sock"
@@ -48,6 +50,7 @@ loki.source.docker "lab_logs" {
 O sistema legado e amplamente aceito do Prometheus baseava-se num modelo de *Pull* (o banco de dados passava recolhendo dados). O Mimir em nosso laboratório delega essa função ao Alloy.
 
 Para coletar métricas do Traefik, por exemplo, o Alloy é ensinado a usar o módulo de scraping.
+
 ```river
 prometheus.scrape "traefik_metrics" {
   targets = [
@@ -57,7 +60,8 @@ prometheus.scrape "traefik_metrics" {
   scrape_interval = "15s"
 }
 ```
-O Alloy vai fazer uma requisição GET a cada 15 segundos em `http://traefik:8080/metrics`, extrair as informações baseadas no formato texto do Prometheus, e compactar para envios em lote (batching). 
+
+O Alloy vai fazer uma requisição GET a cada 15 segundos em `http://traefik:8080/metrics`, extrair as informações baseadas no formato texto do Prometheus, e compactar para envios em lote (batching).
 
 Isso mesmo se aplica aos *exporters* associados a bancos de dados como PostgreSQL e Redis presentes no lab.
 
@@ -78,6 +82,7 @@ discovery.relabel "docker_logs" {
   }
 }
 ```
+
 Esta filtragem prévia é obrigatória para manter a saúde do Mimir/Loki (mantendo a cardinalidade em níveis saudáveis e o dashboard focado unicamente nos dados relevantes).
 
 ## 6. Pipeline Dinâmico
@@ -95,6 +100,7 @@ A ponta final do fluxo do Alloy são os receptores dos bancos.
 Em River, declara-se a conexão e formatação dos envios (como autenticação, tempo de batching) conectando aos serviços internos do Docker Compose.
 
 - **Para o Loki** (Logs):
+
   ```river
   loki.write "endpoint" {
     endpoint {
@@ -102,7 +108,9 @@ Em River, declara-se a conexão e formatação dos envios (como autenticação, 
     }
   }
   ```
+
 - **Para o Mimir** (Métricas):
+
   ```river
   prometheus.remote_write "mimir" {
     endpoint {
@@ -110,6 +118,7 @@ Em River, declara-se a conexão e formatação dos envios (como autenticação, 
     }
   }
   ```
+
   Assim, qualquer componente de captura só precisa repassar sua variável interna `forward_to` para a referência destes escritores.
 
 ## 8. Coleta de Métricas do Host e Containers (Node Exporter & cAdvisor Embutidos)
@@ -119,4 +128,3 @@ O Alloy possui exporters de hardware e container já integrados nativamente no s
 - **Host Metrics (`prometheus.exporter.unix`):** Lê métricas reais de CPU, memória, I/O de disco, filesystems e interfaces de rede da máquina hospedeira através dos pontos de montagem `/host/proc`, `/host/sys` e `/host/rootfs`.
 - **Container Metrics (`prometheus.exporter.cadvisor`):** Coleta métricas de consumo de CPU, memória, rede e I/O de cada container Docker em execução através do Docker daemon socket.
 - **Destino:** Ambas as fontes de métricas são repassadas ao `prometheus.remote_write.mimir.receiver` a cada 15 segundos e visualizadas nos dashboards provisionados automaticamente no Grafana.
-

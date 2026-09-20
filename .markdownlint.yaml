@@ -3,14 +3,21 @@
 
 default: true
 
-# MD013: Line length — relaxed for documentation-heavy projects
-MD013:
-  line_length: 120
-  code_blocks: false
-  tables: false
+# MD013: Line length — disabled for documentation projects (prose, URLs, architecture)
+MD013: false
 
-# MD033: Inline HTML — allow for README badges and diagrams
+# MD024: Multiple headings with the same content (allowed across different sections)
+MD024:
+  siblings_only: true
+
+# MD025: Multiple top-level headings (allowed for modular/comprehensive docs)
+MD025: false
+
+# MD033: Inline HTML — allow for badges, images, and HTML comments
 MD033: false
 
-# MD041: First line heading — allow files that start with badges/shields
+# MD034: Bare URLs — allow raw URLs in documentation
+MD034: false
+
+# MD041: First line heading — allow files that start with badges or intro blocks
 MD041: false
