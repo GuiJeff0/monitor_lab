@@ -14,8 +14,8 @@ jobs:
       - name: Checkout repository
         uses: actions/checkout@v4
 
-      - name: Validate Docker Compose Configuration
-        run: docker compose config --quiet
+      - name: Validate Kubernetes Manifests (Kustomize)
+        run: kubectl kustomize k8s/ > /dev/null
 
   lint:
     name: Lint Documentation & YAML

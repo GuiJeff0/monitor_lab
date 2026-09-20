@@ -346,7 +346,171 @@ spec:
 
 ---
 
-## 🔍 6. Como Visualizar os Traces no Grafana / Tempo
+## 🚀 6. Automação de CI/CD & GitOps Centralizado (Flux CD)
+
+O ecossistema utiliza o modelo **GitOps Centralizado (Padrão de Mercado)** para orquestrar o deploy de microsserviços independentes.
+
+```text
+┌────────────────────────────────────────┐       ┌────────────────────────────────────────┐
+│  Repositório do Microsserviço          │       │  Repositório da Plataforma             │
+│  (ex: GuiJeff0/auth-service)           │       │  (GuiJeff0/monitor_lab)                │
+├────────────────────────────────────────┤       ├────────────────────────────────────────┤
+│ • Código-fonte (Go / Python)           │       │ • k8s/apps/auth-service/deployment.yaml│
+│ • Dockerfile & Testes                  │       │ • Traefik IngressRoutes & Middlewares  │
+│ • .github/workflows/ci-cd.yml          │       │ • Segredos SOPS (*.enc.yaml)           │
+└──────────────────┬─────────────────────┘       └───────────────────▲────────────────────┘
+                   │                                                 │
+                   │ 1. Push na main                                 │ 3. Atualiza imagem:
+                   ▼                                                 │    creedx66/auth-service:sha-abc
+        [GitHub Actions CI/CD]                                       │    via GitHub PAT
+        • Executa testes e linter                                    │
+        • Build & Push no Docker Hub ──► [Docker Hub]                │
+        • Dispara atualização ───────────────────────────────────────┘
+                                                                     │
+                                                                     │ 4. Flux CD sincroniza
+                                                                     │    (Polling a cada 1m)
+                                                                     ▼
+                                                         ┌───────────────────────┐
+                                                         │   Cluster K3s (VM)    │
+                                                         │ • Reconciliação Flux  │
+                                                         │ • Rolling Update Pod  │
+                                                         └───────────────────────┘
+```
+
+### 6.1 Criando o Manifesto no `monitor_lab` com o Script Scaffold
+Para provisionar um novo microsserviço no cluster de forma instantânea, execute na raiz do `monitor_lab`:
+
+```bash
+./scripts/add-microservice.sh <nome-do-servico> [porta] [protocolo: http|grpc] [usuario-dockerhub]
+
+# Exemplo para serviço gRPC:
+./scripts/add-microservice.sh auth-service 50051 grpc creedx66
+
+# Exemplo para serviço HTTP:
+./scripts/add-microservice.sh orders-service 8080 http creedx66
+```
+
+O script cria automaticamente:
+1. A pasta `k8s/apps/<servico>/deployment.yaml` com as variáveis de ambiente OpenTelemetry injetadas.
+2. O Service do Kubernetes na porta correta.
+3. O registro automático do manifesto no `k8s/kustomization.yaml`.
+
+Após rodar o script, commite no `monitor_lab`:
+```bash
+git add k8s/apps/<servico> k8s/kustomization.yaml
+git commit -m "feat(k8s): add <servico> deployment manifest"
+git push origin main
+```
+
+---
+
+### 6.2 Gerando o GitHub Personal Access Token (PAT)
+Para permitir que o GitHub Actions do microsserviço atualize a tag da imagem no `monitor_lab`:
+
+1. No GitHub, acesse **Settings** > **Developer Settings** > **Personal access tokens** > **Fine-grained tokens**.
+2. Clique em **Generate new token**:
+   - **Token name:** `ci-monitor-lab-updater`
+   - **Repository access:** Selecione **Only select repositories** e escolha `monitor_lab`.
+   - **Permissions:** Em *Repository permissions*, selecione **Contents** como **Read and write**.
+3. Copie o token gerado.
+
+---
+
+### 6.3 Configurando os Secrets no Repositório do Microsserviço
+No repositório do microsserviço (ex: `auth-service`), acesse **Settings** > **Secrets and variables** > **Actions** e crie os três segredos:
+
+| Secret | Descrição | Exemplo |
+| :--- | :--- | :--- |
+| `DOCKERHUB_USERNAME` | Seu usuário no Docker Hub | `creedx66` |
+| `DOCKERHUB_TOKEN` | Access Token de escrita do Docker Hub | `dckr_pat_...` |
+| `MONITOR_LAB_PAT` | Fine-Grained Token gerado no passo anterior | `github_pat_...` |
+
+---
+
+### 6.4 Adicionando o Pipeline CI/CD no Microsserviço
+Copie o template `templates/microservice-ci-cd.yml` para `.github/workflows/ci-cd.yml` dentro do repositório do seu microsserviço:
+
+```yaml
+name: CI/CD Pipeline (GitOps)
+
+on:
+  push:
+    branches: [ main ]
+
+jobs:
+  test:
+    name: Test & Lint
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      # Adicione os testes unitários da sua linguagem aqui
+
+  build-and-deploy:
+    name: Build, Push & GitOps Rollout
+    needs: [test]
+    if: github.ref == 'refs/heads/main' && github.event_name == 'push'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: docker/setup-buildx-action@v3
+      - uses: docker/login-action@v3
+        with:
+          username: ${{ secrets.DOCKERHUB_USERNAME }}
+          password: ${{ secrets.DOCKERHUB_TOKEN }}
+
+      - name: Definir Metadados
+        id: meta
+        run: |
+          SERVICE_NAME="auth-service" # ⚠️ Ajuste para o nome do seu serviço
+          IMAGE_TAG="sha-${GITHUB_SHA::7}"
+          echo "service_name=${SERVICE_NAME}" >> $GITHUB_OUTPUT
+          echo "image_tag=${IMAGE_TAG}" >> $GITHUB_OUTPUT
+          echo "image_uri=${{ secrets.DOCKERHUB_USERNAME }}/${SERVICE_NAME}:${IMAGE_TAG}" >> $GITHUB_OUTPUT
+
+      - name: Build and Push Docker Image
+        uses: docker/build-push-action@v6
+        with:
+          context: .
+          push: true
+          tags: |
+            ${{ steps.meta.outputs.image_uri }}
+            ${{ secrets.DOCKERHUB_USERNAME }}/${{ steps.meta.outputs.service_name }}:latest
+
+      - name: Atualizar Tag no monitor_lab (GitOps)
+        run: |
+          git clone https://x-access-token:${{ secrets.MONITOR_LAB_PAT }}@github.com/${{ github.repository_owner }}/monitor_lab.git infra-repo
+          cd infra-repo
+          TARGET="k8s/apps/${{ steps.meta.outputs.service_name }}/deployment.yaml"
+          sed -i "s|image:.*${{ steps.meta.outputs.service_name }}:.*|image: ${{ steps.meta.outputs.image_uri }}|g" "$TARGET"
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git add "$TARGET"
+          if git diff --staged --quiet; then
+            echo "Sem alterações."
+          else
+            git commit -m "chore(cd): update ${{ steps.meta.outputs.service_name }} to ${{ steps.meta.outputs.image_uri }}"
+            git push origin main
+          fi
+```
+
+---
+
+### 6.5 Procedimento de Rollback
+Se uma versão implantada apresentar instabilidade ou erros críticos:
+
+1. **Rollback via Git (Recomendado):**
+   - Acesse o repositório `monitor_lab` no GitHub.
+   - Localize o commit de atualização da imagem (`chore(cd): update ...`) e clique em **Revert**.
+   - O Flux CD detectará a reversão e restaurará a versão anterior do Pod em até 60 segundos com zero downtime.
+
+2. **Rollback de Emergência via CLI (`kubectl`):**
+   ```bash
+   kubectl rollout undo deployment/<servico> -n apps
+   ```
+
+---
+
+## 🔍 7. Como Visualizar os Traces no Grafana / Tempo
 
 1. Acesse o Grafana: **`http://<SEU_TAILSCALE_HOST>/grafana/`**
 2. No menu lateral, clique em **Explore** (ícone da bússola).
@@ -358,3 +522,4 @@ spec:
    - Você verá exatamente cada etapa da requisição, duração de cada span e chamadas de banco de dados.
    - Clique na aba **Node Graph** para ver o gráfico interativo de conexões entre os microsserviços.
    - Clique no botão **Logs for this span** para abrir na hora os logs no Loki filtrados pelo `TraceID` correspondente.
+

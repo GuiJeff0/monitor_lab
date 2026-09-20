@@ -82,7 +82,7 @@ Infraestrutura de observabilidade e orquestração cloud-native de nível empres
 
 - 🚀 **[Fluxo de Dados e Arquitetura Completa](docs/data-flow-and-architecture.md)** — Como as requisições, eventos assíncronos e a telemetria trafegam.
 - 🧪 **[Como Testar Localmente](docs/local-development-and-testing.md)** — Port-forwarding, curl, logs e depuração de Pods no terminal.
-- 🧩 **[Como Subir um Microsserviço Integrado](docs/microservice-integration-guide.md)** — Instrumentação com OTel SDK (Go/Python) e manifesto K8s.
+- 🧩 **[Como Subir um Microsserviço Integrado & GitOps CD](docs/microservice-integration-guide.md)** — Instrumentação com OTel SDK (Go/Python), scaffold com `add-microservice.sh` e pipeline CI/CD GitOps com Flux CD.
 - 🔐 **[Gestão de Secrets com SOPS e age](docs/sops-secrets-management.md)** — Criptografia de segredos versionados com segurança no Git.
 - 📖 **[Guia Operacional de Bootstrap K3s](docs/k3s-migration-guide.md)** — Instruções de inicialização do cluster via scripts e Terraform.
 
@@ -101,8 +101,13 @@ monitor_lab/
 ├── k8s/                                # Manifests Kubernetes (GitOps)
 │   ├── ingress/                        # Traefik IngressRoutes e Middlewares
 │   ├── observability/                  # ConfigMaps e StatefulSets (Mimir, Loki, Tempo, Alloy)
-│   ├── apps/fastapi-bff/               # Deployments de microsserviços com OTel
+│   ├── apps/                           # Deployments de microsserviços com OTel
+│   │   └── _template/                  # Template canônico de deployment
+│   ├── kustomization.yaml              # Manifesto raiz gerenciado pelo Flux CD
 │   └── gitops/flux-sync.yaml           # Sincronização automática com Flux CD
+│
+├── templates/                          # Templates de CI/CD para repositórios externos
+│   └── microservice-ci-cd.yml          # Pipeline GitHub Actions (Build, Push & GitOps Trigger)
 │
 ├── secrets/                            # Segredos criptografados com SOPS
 │   ├── .sops.yaml                      # Regras de encriptação
@@ -110,6 +115,7 @@ monitor_lab/
 │   └── templates/                      # Templates de segredos anonimizados
 │
 ├── scripts/                            # Scripts de automação do servidor
+│   ├── add-microservice.sh             # Scaffold automático de novo microsserviço no K3s
 │   ├── mount-hdd.sh                    # Formatação e montagem do HDD de 1TB
 │   ├── bootstrap-tools.sh              # Instalação de kubectl, helm, terraform, age, sops
 │   ├── install-k3s.sh                  # Instalação e configuração do K3s

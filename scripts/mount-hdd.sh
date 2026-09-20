@@ -58,7 +58,9 @@ fi
 # Create dedicated K3s storage directories
 mkdir -p "${MOUNT_POINT}/k3s-storage"
 mkdir -p "${MOUNT_POINT}/observability"
-chmod 777 "${MOUNT_POINT}/k3s-storage"
+# Permissões restritas: apenas root/k3s podem acessar diretamente o host path
+chmod 750 "${MOUNT_POINT}/k3s-storage"
+chown root:root "${MOUNT_POINT}/k3s-storage"
 
 echo "=== Mount verification ==="
 df -h "$MOUNT_POINT"

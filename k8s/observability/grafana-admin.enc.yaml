@@ -1,0 +1,29 @@
+apiVersion: ENC[AES256_GCM,data:mog=,iv:C+lVGp4fDulEA+rUXz1vL+socC/xPn6MGYR2J4wmffk=,tag:+QT3NM7+Z5qnrU+UmVmGcA==,type:str]
+kind: ENC[AES256_GCM,data:WTda9SgP,iv:yfU9p0SQLA0D1rY6rrArTw48J4/B7r/dedKjnftoMKs=,tag:4OhKP1TihlhA6NtxmRcyfQ==,type:str]
+metadata:
+    name: ENC[AES256_GCM,data:8KwuD+lM7rqqXzSKTz8YNRsLizfdE2bAnQ==,iv:sKxZj7lz9FJHnKfUEH45nCFJmcSmQE8tNeu8Oie9Zko=,tag:JYFhK3LxB4vKl0PM2jU4RQ==,type:str]
+    namespace: ENC[AES256_GCM,data:B7KlQFkajCTT2kG0lA==,iv:pHFTqhXRDzCjbeiUBbPZglPUYQEQQm/JXNLqmXh5UhQ=,tag:5/nUdj39IJfctLxs7WYZCw==,type:str]
+type: ENC[AES256_GCM,data:DdGuDCvq,iv:2uEaZXCnWeKWtjdhMQzjj6O5ozdhiu5igaPMe4Qbu60=,tag:liDYqpnVWPv54bONbQOKdg==,type:str]
+stringData:
+    admin-user: ENC[AES256_GCM,data:MXyxido=,iv:zjnIXqiyzv36FSxwJ6ODB5eVd/qitnaH0ll4vIBWm/E=,tag:93SeamK+fWzraDlucT3QLQ==,type:str]
+    admin-password: ENC[AES256_GCM,data:HLpF+z2gSk+cPeV5ndnVnQ==,iv:9te1wtoas7NKGjolqPFmOteekLqTI+cdr7shkQQVUqQ=,tag:oE8ghSFfh3kiwMd94Zk1xQ==,type:str]
+sops:
+    kms: []
+    gcp_kms: []
+    azure_kv: []
+    hc_vault: []
+    age:
+        - recipient: age17jvrzh4gvhwth0ndakm33dgkvr6dy9xqwj27vg4cr8k9yl424c2s79g4nt
+          enc: |
+            -----BEGIN AGE ENCRYPTED FILE-----
+            YWdlLWVuY3J5cHRpb24ub3JnL3YxCi0+IFgyNTUxOSBablF5TzJRZ0tTc01pYVhy
+            dGhIdUNnYmpNVkRyY2RJaVErK3drZWwyNmdVCmhGc28rbW8wOUQwQjIvd3hlNU96
+            ZFczQjhRdEVnZGJoQVFIU3JWbzJMYWcKLS0tIHhGWTBrdjRYSFB6OEpKaEpBeXdw
+            ZmZKWjI2M1lxSHNydC91K2pSUFlvbjQKyzKeIkFWDvu8ECQ+MJoX+iiCKRF5zVEC
+            8M/fD4n5BH1Qb/5nBWJ+wZH+gtL9D5LYKxbGKXjEy8xEl8wqJi2zRQ==
+            -----END AGE ENCRYPTED FILE-----
+    lastmodified: "2026-09-20T04:56:27Z"
+    mac: ENC[AES256_GCM,data:FON9AO/bSALpiHiXeDatpEZfzCtq/uf6Z/LJ3PJLGObPtX/0kEahG0ExXDSrVlQOxjbUXAg1j7aCq2enY/27yxj6wr76H1ZFVwPXS6/STIhty/Ty/0TySqdYL2OBugnMIJ4DZfPoMoDLqWAXWXICepnwGQrzmAn8vIdV4QdPAGs=,iv:yNxZxi80/xAc0fE8wZE1X8BVs+C34H2jdF7FakiqkNY=,tag:n1bgmq4X77fUWfpy+1Fkhw==,type:str]
+    pgp: []
+    unencrypted_suffix: _unencrypted
+    version: 3.9.4

@@ -22,7 +22,7 @@ data:
 
     compactor:
       compaction:
-        block_retention: 48h
+        block_retention: 168h
 
     metrics_generator:
       registry:
@@ -64,11 +64,22 @@ spec:
       labels:
         app: tempo
     spec:
+      securityContext:
+        fsGroup: 10001
+        runAsGroup: 10001
+        runAsNonRoot: true
+        runAsUser: 10001
       containers:
         - name: tempo
           image: grafana/tempo:2.6.1
           args:
             - "-config.file=/etc/tempo/tempo.yml"
+          securityContext:
+            allowPrivilegeEscalation: false
+            readOnlyRootFilesystem: false
+            capabilities:
+              drop:
+                - ALL
           ports:
             - containerPort: 3200
               name: http
@@ -76,6 +87,18 @@ spec:
               name: otlp-grpc
             - containerPort: 4318
               name: otlp-http
+          livenessProbe:
+            httpGet:
+              path: /ready
+              port: 3200
+            initialDelaySeconds: 30
+            periodSeconds: 15
+          readinessProbe:
+            httpGet:
+              path: /ready
+              port: 3200
+            initialDelaySeconds: 15
+            periodSeconds: 10
           resources:
             requests:
               cpu: 100m

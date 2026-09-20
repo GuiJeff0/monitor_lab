@@ -31,6 +31,7 @@ data:
 
     compactor:
       data_dir: /var/mimir/data/compactor
+      deletion_delay: 2h
 
     ruler_storage:
       backend: filesystem
@@ -41,6 +42,7 @@ data:
       max_global_series_per_user: 1000000
       ingestion_rate: 10000
       ingestion_burst_size: 20000
+      compactor_blocks_retention_period: 30d
 ---
 apiVersion: apps/v1
 kind: StatefulSet
@@ -58,16 +60,39 @@ spec:
       labels:
         app: mimir
     spec:
+      securityContext:
+        fsGroup: 10001
+        runAsGroup: 10001
+        runAsNonRoot: true
+        runAsUser: 10001
       containers:
         - name: mimir
           image: grafana/mimir-alpine:2.15.0
           args:
             - "-config.file=/etc/mimir/mimir.yml"
+          securityContext:
+            allowPrivilegeEscalation: false
+            readOnlyRootFilesystem: false
+            capabilities:
+              drop:
+                - ALL
           ports:
             - containerPort: 8080
               name: http
             - containerPort: 9095
               name: grpc
+          livenessProbe:
+            httpGet:
+              path: /ready
+              port: 8080
+            initialDelaySeconds: 45
+            periodSeconds: 15
+          readinessProbe:
+            httpGet:
+              path: /ready
+              port: 8080
+            initialDelaySeconds: 15
+            periodSeconds: 10
           resources:
             requests:
               cpu: 100m

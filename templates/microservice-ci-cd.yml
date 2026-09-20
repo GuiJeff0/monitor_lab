@@ -1,0 +1,146 @@
+# ==============================================================================
+# Template de Workflow GitHub Actions para Repositório de Microsserviço
+# Arquivo: .github/workflows/ci-cd.yml
+# 
+# Este workflow realiza:
+#   1. Testes automatizados da aplicação
+#   2. Build da imagem Docker com tags imutáveis (:sha-<commit> e :latest)
+#   3. Push para o Docker Hub
+#   4. Atualização automática do manifesto em monitor_lab (GitOps com Flux CD)
+#
+# Segredos necessários no repositório deste microsserviço:
+#   - DOCKERHUB_USERNAME : Usuário no Docker Hub (ex: creedx66)
+#   - DOCKERHUB_TOKEN    : Access Token do Docker Hub com permissão Read/Write
+#   - MONITOR_LAB_PAT    : GitHub Fine-Grained Personal Access Token com
+#                          permissão "Contents: Read and write" no repositório monitor_lab
+# ==============================================================================
+
+name: CI/CD Pipeline (GitOps)
+
+on:
+  push:
+    branches:
+      - main
+  pull_request:
+    branches:
+      - main
+
+permissions:
+  contents: read
+
+jobs:
+  # ----------------------------------------------------------------------------
+  # Job 1: Testes e Validação
+  # ----------------------------------------------------------------------------
+  test:
+    name: Test & Lint
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v4
+
+      # Exemplo para Go (descomente se aplicável):
+      # - name: Set up Go
+      #   uses: actions/setup-go@v5
+      #   with:
+      #     go-version: '1.23'
+      # - name: Run Go Tests
+      #   run: go test -v -race ./...
+
+      # Exemplo para Python (descomente se aplicável):
+      # - name: Set up Python
+      #   uses: actions/setup-python@v5
+      #   with:
+      #     python-version: '3.12'
+      # - name: Run Pytest
+      #   run: |
+      #     pip install -r requirements.txt pytest
+      #     pytest
+
+  # ----------------------------------------------------------------------------
+  # Job 2: Build, Push no Docker Hub e Gatilho GitOps no monitor_lab
+  # (Executado apenas em commits na branch main)
+  # ----------------------------------------------------------------------------
+  build-and-deploy:
+    name: Build, Push & GitOps Rollout
+    needs: [test]
+    if: github.ref == 'refs/heads/main' && github.event_name == 'push'
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v4
+
+      - name: Set up QEMU
+        uses: docker/setup-qemu-action@v3
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Log in to Docker Hub
+        uses: docker/login-action@v3
+        with:
+          username: ${{ secrets.DOCKERHUB_USERNAME }}
+          password: ${{ secrets.DOCKERHUB_TOKEN }}
+
+      # ------------------------------------------------------------------------
+      # ATENÇÃO: Substitua 'MEU_SERVICO' pelo nome exato do seu microsserviço
+      # (deve coincidir com a pasta em monitor_lab/k8s/apps/<MEU_SERVICO>)
+      # ------------------------------------------------------------------------
+      - name: Definir Metadados da Imagem
+        id: meta
+        run: |
+          SERVICE_NAME="MEU_SERVICO"
+          IMAGE_TAG="sha-${GITHUB_SHA::7}"
+          IMAGE_URI="${{ secrets.DOCKERHUB_USERNAME }}/${SERVICE_NAME}:${IMAGE_TAG}"
+          echo "service_name=${SERVICE_NAME}" >> $GITHUB_OUTPUT
+          echo "image_tag=${IMAGE_TAG}" >> $GITHUB_OUTPUT
+          echo "image_uri=${IMAGE_URI}" >> $GITHUB_OUTPUT
+
+      - name: Build and Push Docker Image
+        uses: docker/build-push-action@v6
+        with:
+          context: .
+          file: ./Dockerfile
+          push: true
+          tags: |
+            ${{ steps.meta.outputs.image_uri }}
+            ${{ secrets.DOCKERHUB_USERNAME }}/${{ steps.meta.outputs.service_name }}:latest
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+
+      # ------------------------------------------------------------------------
+      # Passo GitOps: Atualiza o repositório central monitor_lab
+      # O Flux CD na VM detecta o commit em até 60 segundos e faz o rollout
+      # ------------------------------------------------------------------------
+      - name: Atualizar Manifesto no monitor_lab (GitOps Trigger)
+        run: |
+          SERVICE_NAME="${{ steps.meta.outputs.service_name }}"
+          IMAGE_URI="${{ steps.meta.outputs.image_uri }}"
+          TARGET_FILE="k8s/apps/${SERVICE_NAME}/deployment.yaml"
+
+          echo "Clonando repositório de infraestrutura monitor_lab..."
+          git clone https://x-access-token:${{ secrets.MONITOR_LAB_PAT }}@github.com/${{ github.repository_owner }}/monitor_lab.git infra-repo
+          cd infra-repo
+
+          if [ ! -f "$TARGET_FILE" ]; then
+            echo "❌ Erro: Arquivo $TARGET_FILE não existe em monitor_lab!"
+            echo "Execute primeiro ./scripts/add-microservice.sh $SERVICE_NAME no monitor_lab."
+            exit 1
+          fi
+
+          echo "Atualizando tag da imagem para: ${IMAGE_URI}"
+          sed -i "s|image:.*${SERVICE_NAME}:.*|image: ${IMAGE_URI}|g" "$TARGET_FILE"
+
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git add "$TARGET_FILE"
+
+          if git diff --staged --quiet; then
+            echo "ℹ️  Nenhuma alteração de versão detectada no manifesto."
+          else
+            git commit -m "chore(cd): update ${SERVICE_NAME} to ${IMAGE_URI}"
+            git push origin main
+            echo "🚀 Sucesso: Commit realizado no monitor_lab. O Flux CD iniciará o rollout no cluster K3s!"
+          fi
+

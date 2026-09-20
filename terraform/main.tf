@@ -63,18 +63,17 @@ resource "helm_release" "traefik" {
       }
       ports = {
         web = {
-          port     = 80
-          hostPort = 80
+          port        = 80
+          hostPort    = 80
           exposedPort = 80
         }
         websecure = {
-          port     = 443
-          hostPort = 443
+          port        = 443
+          hostPort    = 443
           exposedPort = 443
         }
         traefik = {
           port        = 8080
-          hostPort    = 8080
           exposedPort = 8080
         }
       }
@@ -83,7 +82,7 @@ resource "helm_release" "traefik" {
       }
       ingressRoute = {
         dashboard = {
-          enabled = true
+          enabled = false
         }
       }
       metrics = {
@@ -143,11 +142,14 @@ resource "helm_release" "grafana" {
 
   values = [
     yamlencode({
-      adminUser     = "admin"
-      adminPassword = "admin" # Substituído em runtime via SOPS secret
+      admin = {
+        existingSecret = "grafana-admin-credentials"
+        userKey        = "admin-user"
+        passwordKey    = "admin-password"
+      }
       env = {
-        GF_SERVER_DOMAIN             = var.tailscale_hostname
-        GF_SERVER_ROOT_URL           = "http://${var.tailscale_hostname}/grafana/"
+        GF_SERVER_DOMAIN              = var.tailscale_hostname
+        GF_SERVER_ROOT_URL            = "http://${var.tailscale_hostname}/grafana/"
         GF_SERVER_SERVE_FROM_SUB_PATH = "true"
       }
       persistence = {
@@ -172,11 +174,11 @@ resource "helm_release" "grafana" {
               }
             },
             {
-              name     = "Loki"
-              type     = "loki"
-              uid      = "loki"
-              url      = "http://loki.observability.svc.cluster.local:3100"
-              access   = "proxy"
+              name   = "Loki"
+              type   = "loki"
+              uid    = "loki"
+              url    = "http://loki.observability.svc.cluster.local:3100"
+              access = "proxy"
               jsonData = {
                 maxLines = 1000
                 derivedFields = [
@@ -190,15 +192,15 @@ resource "helm_release" "grafana" {
               }
             },
             {
-              name     = "Tempo"
-              type     = "tempo"
-              uid      = "tempo"
-              url      = "http://tempo.observability.svc.cluster.local:3200"
-              access   = "proxy"
+              name   = "Tempo"
+              type   = "tempo"
+              uid    = "tempo"
+              url    = "http://tempo.observability.svc.cluster.local:3200"
+              access = "proxy"
               jsonData = {
                 httpMethod = "GET"
                 tracesToLogsV2 = {
-                  datasourceUid = "loki"
+                  datasourceUid   = "loki"
                   filterByTraceID = true
                 }
                 tracesToMetrics = {
@@ -241,6 +243,16 @@ resource "helm_release" "alloy" {
           create = false
           name   = "alloy-config"
           key    = "config.alloy"
+        }
+        resources = {
+          requests = {
+            cpu    = "100m"
+            memory = "128Mi"
+          }
+          limits = {
+            cpu    = "500m"
+            memory = "512Mi"
+          }
         }
       }
       controller = {

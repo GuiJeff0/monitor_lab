@@ -132,8 +132,13 @@ monitor_lab/
 ├── k8s/                                # Manifests Kubernetes (GitOps)
 │   ├── ingress/                        # Traefik IngressRoutes e Middlewares
 │   ├── observability/                  # ConfigMaps e StatefulSets (Mimir, Loki, Tempo, Alloy)
-│   ├── apps/fastapi-bff/               # Deployments de microsserviços com OTel
+│   ├── apps/                           # Deployments de microsserviços com OTel
+│   │   └── _template/                  # Template canônico de deployment
+│   ├── kustomization.yaml              # Manifesto raiz gerenciado pelo Flux CD
 │   └── gitops/flux-sync.yaml           # Sincronização automática com Flux CD
+│
+├── templates/                          # Templates de CI/CD para repositórios externos
+│   └── microservice-ci-cd.yml          # Pipeline GitHub Actions (Build, Push & GitOps Trigger)
 │
 ├── secrets/                            # Segredos criptografados com SOPS
 │   ├── .sops.yaml                      # Regras de encriptação com chave age
@@ -141,6 +146,7 @@ monitor_lab/
 │   └── templates/                      # Templates anonimizados para novos serviços
 │
 ├── scripts/                            # Scripts de automação do servidor
+│   ├── add-microservice.sh             # Scaffold automático de novo microsserviço no K3s
 │   ├── mount-hdd.sh                    # Formatação e montagem do HDD de 1TB
 │   ├── bootstrap-tools.sh              # Instalação de kubectl, helm, terraform, age, sops
 │   ├── install-k3s.sh                  # Instalação e configuração do K3s
@@ -153,7 +159,7 @@ monitor_lab/
 └── docs/                               # Documentação técnica centralizada
     ├── README.md                       # Índice geral da plataforma
     ├── data-flow-and-architecture.md   # Fluxos síncronos, assíncronos e telemetria
-    ├── microservice-integration-guide.md # Guia de integração OTel SDK, Traces e Deploy
+    ├── microservice-integration-guide.md # Guia de integração OTel SDK, Traces, Scaffold e GitOps CD
     ├── local-development-and-testing.md  # Port-forwarding, curl e depuração
     ├── sops-secrets-management.md      # Criptografia de segredos com SOPS e age
     ├── k3s-migration-guide.md          # Guia operacional de bootstrap K3s

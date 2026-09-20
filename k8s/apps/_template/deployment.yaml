@@ -1,0 +1,85 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: SERVICE_NAME
+  namespace: apps
+  labels:
+    app: SERVICE_NAME
+    tier: backend
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: SERVICE_NAME
+  template:
+    metadata:
+      labels:
+        app: SERVICE_NAME
+    spec:
+      automountServiceAccountToken: false
+      securityContext:
+        runAsNonRoot: true
+        runAsUser: 1000
+        runAsGroup: 1000
+        fsGroup: 1000
+        seccompProfile:
+          type: RuntimeDefault
+      imagePullSecrets:
+        - name: dockerhub-registry-credentials
+      containers:
+        - name: SERVICE_NAME
+          # A tag é atualizada automaticamente pelo CI/CD do microsserviço
+          image: DOCKERHUB_USERNAME/SERVICE_NAME:latest
+          imagePullPolicy: IfNotPresent
+          securityContext:
+            allowPrivilegeEscalation: false
+            readOnlyRootFilesystem: false
+            capabilities:
+              drop:
+                - ALL
+          ports:
+            - containerPort: SERVICE_PORT
+              name: SERVICE_PROTOCOL
+          env:
+            # 🔴 Observabilidade: Telemetria OpenTelemetry -> Grafana Alloy
+            - name: OTEL_SERVICE_NAME
+              value: "SERVICE_NAME"
+            - name: OTEL_EXPORTER_OTLP_ENDPOINT
+              value: "http://alloy.observability.svc.cluster.local:4317"
+            - name: OTEL_EXPORTER_OTLP_PROTOCOL
+              value: "SERVICE_OTEL_PROTOCOL"
+          resources:
+            requests:
+              cpu: 50m
+              memory: 64Mi
+            limits:
+              cpu: 250m
+              memory: 256Mi
+          livenessProbe:
+            httpGet:
+              path: /health
+              port: SERVICE_PORT
+            initialDelaySeconds: 15
+            periodSeconds: 15
+          readinessProbe:
+            httpGet:
+              path: /health
+              port: SERVICE_PORT
+            initialDelaySeconds: 5
+            periodSeconds: 10
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: SERVICE_NAME
+  namespace: apps
+  labels:
+    app: SERVICE_NAME
+spec:
+  selector:
+    app: SERVICE_NAME
+  ports:
+    - port: SERVICE_PORT
+      targetPort: SERVICE_PORT
+      name: SERVICE_PROTOCOL
+

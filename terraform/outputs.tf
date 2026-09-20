@@ -1,6 +1,6 @@
 output "traefik_dashboard_url" {
-  description = "URL para o Dashboard interno do Traefik"
-  value       = "http://${var.tailscale_hostname}:8080/dashboard/"
+  description = "Acesso seguro ao Dashboard do Traefik via port-forward"
+  value       = "kubectl port-forward -n ingress deployment/traefik 8080:8080 -> http://localhost:8080/dashboard/"
 }
 
 output "grafana_url" {
