@@ -10,7 +10,9 @@ data:
     // Unified collector: OTLP Ingestion + Pod Logs + Host/K8s Metrics
     // =========================================================================
 
+    // -------------------------------------------------------------------------
     // 1. OTLP RECEIVER (Ingestão direta dos Microsserviços)
+    // -------------------------------------------------------------------------
     otelcol.receiver.otlp "default" {
       grpc {
         endpoint = "0.0.0.0:4317"
@@ -45,7 +47,9 @@ data:
       forward_to = [loki.write.endpoint.receiver]
     }
 
+    // -------------------------------------------------------------------------
     // 2. LOGS PIPELINE (Pod Logs via /var/log/pods -> Loki)
+    // -------------------------------------------------------------------------
     discovery.kubernetes "pods" {
       role = "pod"
     }
@@ -61,24 +65,48 @@ data:
       }
     }
 
+    // -------------------------------------------------------------------------
     // 3. METRICS PIPELINE (Mimir Remote Write)
+    // -------------------------------------------------------------------------
     prometheus.remote_write "mimir" {
       endpoint {
         url = "http://mimir.observability.svc.cluster.local:8080/api/v1/push"
       }
     }
 
-    // Scrape Kubelet / CAdvisor for container resource usage
-    prometheus.scrape "kubelet" {
-      targets = [
-        {"__address__" = "localhost:10250", "job" = "kubelet"},
-      ]
-      scheme = "https"
+    // 4. HOST METRICS (Node Exporter - CPU, RAM, Disco, Rede, Temperatura da VM)
+    prometheus.exporter.unix "host" {
+    }
+
+    prometheus.scrape "node_exporter" {
+      targets         = prometheus.exporter.unix.host.targets
+      forward_to      = [prometheus.remote_write.mimir.receiver]
+      scrape_interval = "15s"
+    }
+
+    // 5. CONTAINER METRICS (Kubelet cAdvisor - CPU, RAM, I/O de todos os Pods)
+    discovery.kubernetes "nodes" {
+      role = "node"
+    }
+
+    prometheus.scrape "cadvisor" {
+      targets           = discovery.kubernetes.nodes.targets
+      scheme            = "https"
       tls_config {
         insecure_skip_verify = true
       }
       bearer_token_file = "/var/run/secrets/kubernetes.io/serviceaccount/token"
+      metrics_path      = "/metrics/cadvisor"
       forward_to        = [prometheus.remote_write.mimir.receiver]
       scrape_interval   = "15s"
     }
 
+    // 6. TRAEFIK METRICS (Rotas, Taxa de Requisições e Latência HTTP)
+    prometheus.scrape "traefik" {
+      targets = [
+        {"__address__" = "traefik.ingress.svc.cluster.local:8080", "job" = "traefik"},
+      ]
+      metrics_path    = "/metrics"
+      forward_to      = [prometheus.remote_write.mimir.receiver]
+      scrape_interval = "15s"
+    }

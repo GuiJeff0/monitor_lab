@@ -15630,7 +15630,7 @@
           "type": "prometheus",
           "uid": "mimir"
         },
-        "definition": "label_values(node_uname_info{job=~\"$job\", nodename=~\"$nodename\", instance!~\"^[0-9a-f]{12}$\"}, instance)",
+        "definition": "label_values(node_uname_info{job=~\"$job\"}, instance)",
         "hide": 0,
         "includeAll": false,
         "label": "Instance",
@@ -15638,7 +15638,7 @@
         "name": "node",
         "options": [],
         "query": {
-          "query": "label_values(node_uname_info{job=~\"$job\", nodename=~\"$nodename\", instance!~\"^[0-9a-f]{12}$\"}, instance)",
+          "query": "label_values(node_uname_info{job=~\"$job\"}, instance)",
           "refId": "Prometheus-node-Variable-Query"
         },
         "refresh": 2,
