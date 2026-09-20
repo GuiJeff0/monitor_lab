@@ -29,7 +29,7 @@ Thumbs.db
 *.bak
 
 # Docker data mounts & temporary runtime data (if mounted locally)
-data/
+/data/
 *.db
 
 # Terraform

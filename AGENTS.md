@@ -131,13 +131,16 @@ monitor_lab/
 │   ├── main.tf                         # Namespaces, Traefik v3, Portainer, LGTM, Alloy e Flux
 │   └── outputs.tf                      # URLs de acesso direto aos dashboards
 │
-├── k8s/                                # Manifests Kubernetes (GitOps)
+├── k8s/                                # Manifestos Kubernetes estruturados (GitOps)
+│   ├── system/                         # ResourceQuotas e governança de cluster
 │   ├── ingress/                        # Traefik IngressRoutes e Middlewares
 │   ├── observability/                  # ConfigMaps e StatefulSets (Mimir, Loki, Tempo, Alloy)
+│   ├── portainer/                      # RBAC e regras de acesso do Portainer CE
 │   ├── apps/                           # Deployments de microsserviços com OTel
 │   │   └── _template/                  # Template canônico de deployment
-│   ├── kustomization.yaml              # Manifesto raiz gerenciado pelo Flux CD
-│   └── gitops/flux-sync.yaml           # Sincronização automática com Flux CD
+│   ├── data/                           # Bases de dados e mensageria (Postgres, RabbitMQ, Mongo)
+│   ├── gitops/                         # Reconciliação contínua e segredos (Flux CD + SOPS)
+│   └── kustomization.yaml              # Manifesto raiz orquestrador do Flux CD
 │
 ├── templates/                          # Templates de CI/CD para repositórios externos
 │   └── microservice-ci-cd.yml          # Pipeline GitHub Actions (Build, Push & GitOps Trigger)

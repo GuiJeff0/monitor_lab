@@ -26,7 +26,7 @@ fi
 
 TARGET_DIR="${REPO_ROOT}/k8s/apps/${SERVICE_NAME}"
 TARGET_FILE="${TARGET_DIR}/deployment.yaml"
-KUSTOMIZATION_FILE="${REPO_ROOT}/k8s/kustomization.yaml"
+KUSTOMIZATION_FILE="${REPO_ROOT}/k8s/apps/kustomization.yaml"
 
 echo "🚀 Criando scaffold do microsserviço: ${SERVICE_NAME}"
 echo "   - Porta: ${SERVICE_PORT}"
@@ -149,15 +149,15 @@ EOF
 
 echo "✅ Manifesto criado em: ${TARGET_FILE}"
 
-# Adiciona no k8s/kustomization.yaml se ainda não estiver presente
-RESOURCE_ENTRY="  - apps/${SERVICE_NAME}/deployment.yaml"
-if grep -q "apps/${SERVICE_NAME}/deployment.yaml" "$KUSTOMIZATION_FILE"; then
-    echo "ℹ️  O manifesto já está registrado em k8s/kustomization.yaml."
+# Adiciona no k8s/apps/kustomization.yaml se ainda não estiver presente
+RESOURCE_ENTRY="  - ${SERVICE_NAME}/deployment.yaml"
+if grep -q "${SERVICE_NAME}/deployment.yaml" "$KUSTOMIZATION_FILE"; then
+    echo "ℹ️  O manifesto já está registrado em k8s/apps/kustomization.yaml."
 else
-    echo "📝 Registrando ${SERVICE_NAME} em k8s/kustomization.yaml..."
+    echo "📝 Registrando ${SERVICE_NAME} em k8s/apps/kustomization.yaml..."
     # Adiciona a entrada na lista de resources
     echo "$RESOURCE_ENTRY" >> "$KUSTOMIZATION_FILE"
-    echo "✅ Registrado com sucesso no k8s/kustomization.yaml!"
+    echo "✅ Registrado com sucesso no k8s/apps/kustomization.yaml!"
 fi
 
 echo ""
@@ -166,7 +166,7 @@ echo "1. No repositório do microsserviço (${SERVICE_NAME}):"
 echo "   - Adicione o workflow .github/workflows/ci-cd.yml (template em templates/microservice-ci-cd.yml)"
 echo "   - Configure os secrets DOCKERHUB_USERNAME, DOCKERHUB_TOKEN e MONITOR_LAB_PAT"
 echo "2. No repositório monitor_lab:"
-echo "   - Faça commit das alterações: git add k8s/apps/${SERVICE_NAME} k8s/kustomization.yaml"
+echo "   - Faça commit das alterações: git add k8s/apps/${SERVICE_NAME} k8s/apps/kustomization.yaml"
 echo "   - git commit -m 'feat(k8s): add ${SERVICE_NAME} deployment manifest'"
 echo "   - git push origin main"
 echo "   - O Flux CD sincronizará automaticamente o novo serviço no K3s!"
