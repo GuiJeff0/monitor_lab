@@ -4,3 +4,4 @@ resources:
   - middlewares.yaml
   - grafana-ingress.yaml
   - portainer-ingress.yaml
+  - traefik-ingress.yaml

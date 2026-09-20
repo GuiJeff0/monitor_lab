@@ -1,0 +1,27 @@
+apiVersion: traefik.io/v1alpha1
+kind: IngressRoute
+metadata:
+  name: traefik-dashboard
+  namespace: ingress
+spec:
+  entryPoints:
+    - web
+    - websecure
+  routes:
+    - match: Path(`/dashboard`)
+      kind: Rule
+      priority: 100
+      middlewares:
+        - name: dashboard-redirect
+        - name: tailscale-ipallowlist
+      services:
+        - name: api@internal
+          kind: TraefikService
+    - match: PathPrefix(`/dashboard/`) || PathPrefix(`/api`)
+      kind: Rule
+      priority: 50
+      middlewares:
+        - name: tailscale-ipallowlist
+      services:
+        - name: api@internal
+          kind: TraefikService
