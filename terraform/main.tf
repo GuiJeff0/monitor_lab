@@ -212,6 +212,16 @@ resource "helm_release" "grafana" {
           ]
         }
       }
+      sidecar = {
+        dashboards = {
+          enabled           = true
+          label             = "grafana_dashboard"
+          labelValue        = "1"
+          folder            = "/tmp/dashboards"
+          defaultFolderName = "Infra"
+          searchNamespace   = "observability"
+        }
+      }
     })
   ]
 }
