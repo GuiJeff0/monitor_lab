@@ -1,16 +1,35 @@
 # ==============================================================================
 # Portainer RBAC Restrito (Sem acesso de leitura/escrita a Secrets)
 # ==============================================================================
-# Remove o privilégio cluster-admin padrão do Portainer CE.
-# Permite ao Portainer visualizar e gerenciar Pods, Workloads e Configs,
+# Garante a existência do ServiceAccount do Portainer,
+# fornece permissões de leitura do cluster (Nodes, Pods, Workloads, Versão, Métricas),
 # mas BLOQUEIA explicitamente o acesso aos Secrets em todos os namespaces.
 # ==============================================================================
 
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: portainer-sa-clusteradmin
+  namespace: portainer
+---
 apiVersion: rbac.authorization.k8s.io/v1
 kind: ClusterRole
 metadata:
   name: portainer-restricted
 rules:
+  # 0. Discovery da API e Versão do Cluster
+  - nonResourceURLs:
+      - "/version"
+      - "/version/*"
+      - "/api"
+      - "/api/*"
+      - "/apis"
+      - "/apis/*"
+      - "/healthz"
+      - "/livez"
+      - "/readyz"
+    verbs: ["get"]
+
   # 1. Pods e Logs
   - apiGroups: [""]
     resources: ["pods", "pods/log", "pods/status"]
@@ -23,7 +42,17 @@ rules:
 
   # 3. Networking e Configurações (ConfigMaps permitidos, SECRETS OMITIDOS)
   - apiGroups: [""]
-    resources: ["services", "endpoints", "configmaps", "namespaces", "events"]
+    resources:
+      - services
+      - endpoints
+      - configmaps
+      - namespaces
+      - events
+      - resourcequotas
+      - limitranges
+    verbs: ["get", "list", "watch"]
+  - apiGroups: ["networking.k8s.io"]
+    resources: ["ingresses", "ingressclasses"]
     verbs: ["get", "list", "watch"]
 
   # 4. Storage
@@ -62,4 +91,3 @@ subjects:
   - kind: ServiceAccount
     name: portainer-sa-clusteradmin
     namespace: portainer
-

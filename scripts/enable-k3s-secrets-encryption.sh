@@ -67,3 +67,4 @@ k3s kubectl get secrets --all-namespaces -o json | k3s kubectl replace -f -
 
 echo "[✔] Criptografia de segredos at-rest no etcd/K3s habilitada com sucesso!"
 echo "[!] ATENÇÃO: Guarde uma cópia de segurança de ${ENCRYPTION_CONFIG} fora deste servidor."
+
