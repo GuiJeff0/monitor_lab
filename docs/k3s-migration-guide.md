@@ -66,7 +66,7 @@ monitor_lab/
 │   └── gitops/                 # Flux GitRepository e Kustomization
 │
 └── .github/workflows/
-    ├── ci-microservice.yml     # Pipeline de build e push para Docker Hub
+    ├── ci.yml                  # Pipeline de validação K8s e linters
     └── terraform-validate.yml  # Validação de sintaxe e formato do Terraform
 ```
 

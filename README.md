@@ -125,7 +125,7 @@ monitor_lab/
 │   └── sops-keygen.sh                  # Geração de par de chaves age
 │
 ├── .github/workflows/                  # CI/CD no GitHub Actions
-│   ├── ci-microservice.yml             # Build e push para Docker Hub
+│   ├── ci.yml                          # Validação contínua do K8s (Kustomize) e linters
 │   └── terraform-validate.yml          # Lint e validação contínua do Terraform
 │
 └── docs/                               # Documentação centralizada
