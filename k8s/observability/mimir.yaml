@@ -18,6 +18,9 @@ data:
         filesystem:
           dir: /var/mimir/data
 
+    activity_tracker:
+      filepath: /var/mimir/data/metrics-activity.log
+
     ingester:
       ring:
         replication_factor: 1
@@ -68,6 +71,7 @@ spec:
       containers:
         - name: mimir
           image: grafana/mimir-alpine:2.15.0
+          workingDir: /var/mimir/data
           args:
             - "-config.file=/etc/mimir/mimir.yml"
           securityContext:
