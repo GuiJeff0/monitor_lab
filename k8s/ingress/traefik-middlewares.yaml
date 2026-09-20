@@ -1,0 +1,80 @@
+# Middlewares no namespace ingress
+apiVersion: traefik.io/v1alpha1
+kind: Middleware
+metadata:
+  name: tailscale-ipallowlist
+  namespace: ingress
+spec:
+  ipAllowList:
+    sourceRange:
+      - "127.0.0.1/32"
+      - "100.64.0.0/10"
+      - "192.168.0.0/16"
+      - "172.16.0.0/12"
+      - "10.0.0.0/8"
+---
+# Middlewares no namespace portainer
+apiVersion: traefik.io/v1alpha1
+kind: Middleware
+metadata:
+  name: portainer-stripprefix
+  namespace: portainer
+spec:
+  stripPrefix:
+    prefixes:
+      - "/portainer"
+---
+apiVersion: traefik.io/v1alpha1
+kind: Middleware
+metadata:
+  name: portainer-redirect
+  namespace: portainer
+spec:
+  redirectRegex:
+    regex: "^.*(/portainer)$"
+    replacement: "${1}/"
+    permanent: false
+---
+apiVersion: traefik.io/v1alpha1
+kind: Middleware
+metadata:
+  name: tailscale-ipallowlist
+  namespace: portainer
+spec:
+  ipAllowList:
+    sourceRange:
+      - "127.0.0.1/32"
+      - "100.64.0.0/10"
+      - "192.168.0.0/16"
+      - "172.16.0.0/12"
+      - "10.0.0.0/8"
+---
+# Middlewares no namespace observability
+apiVersion: traefik.io/v1alpha1
+kind: Middleware
+metadata:
+  name: tailscale-ipallowlist
+  namespace: observability
+spec:
+  ipAllowList:
+    sourceRange:
+      - "127.0.0.1/32"
+      - "100.64.0.0/10"
+      - "192.168.0.0/16"
+      - "172.16.0.0/12"
+      - "10.0.0.0/8"
+---
+# Middlewares no namespace apps
+apiVersion: traefik.io/v1alpha1
+kind: Middleware
+metadata:
+  name: tailscale-ipallowlist
+  namespace: apps
+spec:
+  ipAllowList:
+    sourceRange:
+      - "127.0.0.1/32"
+      - "100.64.0.0/10"
+      - "192.168.0.0/16"
+      - "172.16.0.0/12"
+      - "10.0.0.0/8"

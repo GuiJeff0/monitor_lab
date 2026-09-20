@@ -1,0 +1,110 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: mimir-config
+  namespace: observability
+data:
+  mimir.yml: |
+    multitenancy_enabled: false
+
+    server:
+      http_listen_port: 8080
+      grpc_listen_port: 9095
+      log_level: info
+
+    common:
+      storage:
+        backend: filesystem
+        filesystem:
+          dir: /var/mimir/data
+
+    ingester:
+      ring:
+        replication_factor: 1
+
+    blocks_storage:
+      backend: filesystem
+      filesystem:
+        dir: /var/mimir/data/tsdb
+      tsdb:
+        dir: /var/mimir/data/tsdb-active
+
+    compactor:
+      data_dir: /var/mimir/data/compactor
+
+    ruler_storage:
+      backend: filesystem
+      filesystem:
+        dir: /var/mimir/data/rules
+
+    limits:
+      max_global_series_per_user: 1000000
+      ingestion_rate: 10000
+      ingestion_burst_size: 20000
+---
+apiVersion: apps/v1
+kind: StatefulSet
+metadata:
+  name: mimir
+  namespace: observability
+spec:
+  serviceName: mimir
+  replicas: 1
+  selector:
+    matchLabels:
+      app: mimir
+  template:
+    metadata:
+      labels:
+        app: mimir
+    spec:
+      containers:
+        - name: mimir
+          image: grafana/mimir-alpine:2.15.0
+          args:
+            - "-config.file=/etc/mimir/mimir.yml"
+          ports:
+            - containerPort: 8080
+              name: http
+            - containerPort: 9095
+              name: grpc
+          resources:
+            requests:
+              cpu: 100m
+              memory: 256Mi
+            limits:
+              cpu: 500m
+              memory: 1Gi
+          volumeMounts:
+            - name: config
+              mountPath: /etc/mimir
+            - name: data
+              mountPath: /var/mimir
+      volumes:
+        - name: config
+          configMap:
+            name: mimir-config
+  volumeClaimTemplates:
+    - metadata:
+        name: data
+      spec:
+        accessModes: ["ReadWriteOnce"]
+        storageClassName: "local-hdd"
+        resources:
+          requests:
+            storage: 20Gi
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: mimir
+  namespace: observability
+spec:
+  selector:
+    app: mimir
+  ports:
+    - port: 8080
+      name: http
+    - port: 9095
+      name: grpc
+
