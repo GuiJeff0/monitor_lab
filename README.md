@@ -70,7 +70,7 @@ e **GitOps com Flux CD e Docker Hub**.
 |---|---|---|---|
 | **Portainer CE** | `2.27` | Gerenciamento visual do K3s, Pods, Volumes e Logs | `http://<tailscale-host>/portainer/` |
 | **Grafana** | `11.5` | Visualização unificada (Métricas, Logs, Traces) | `http://<tailscale-host>/grafana/` |
-| **Traefik v3** | `v3.7` | Ingress Controller, Load Balancer e Proxy Reverso | `http://<tailscale-host>/`<br>`http://<tailscale-host>:8080/dashboard/` |
+| **Traefik v3** | `v3.7` | Ingress Controller, Load Balancer e Proxy Reverso | `http://<tailscale-host>/traefik/dashboard/` |
 | **Grafana Mimir** | `2.15` | TSDB de métricas escalável compatível com PromQL | Interno (`mimir.observability:8080`) |
 | **Grafana Loki** | `3.7` | Ingestão e agregação de logs com LogQL | Interno (`loki.observability:3100`) |
 | **Grafana Tempo** | `2.6` | Armazenamento e consulta de Distributed Traces | Interno (`tempo.observability:3200`) |

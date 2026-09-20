@@ -8,19 +8,52 @@ spec:
     - web
     - websecure
   routes:
-    - match: Path(`/dashboard`)
+    # 1. /traefik ou /traefik/ redireciona para /traefik/dashboard/
+    - match: Path(`/traefik`) || Path(`/traefik/`)
       kind: Rule
-      priority: 100
+      priority: 120
       middlewares:
-        - name: dashboard-redirect
+        - name: traefik-redirect
         - name: tailscale-ipallowlist
       services:
         - name: api@internal
           kind: TraefikService
-    - match: PathPrefix(`/dashboard/`) || PathPrefix(`/api`)
+    # 2. /traefik/dashboard redireciona para /traefik/dashboard/
+    - match: Path(`/traefik/dashboard`)
+      kind: Rule
+      priority: 110
+      middlewares:
+        - name: traefik-dashboard-redirect
+        - name: tailscale-ipallowlist
+      services:
+        - name: api@internal
+          kind: TraefikService
+    # 3. /dashboard ou /dashboard/ redireciona para /traefik/dashboard/ (compatibilidade)
+    - match: Path(`/dashboard`) || PathPrefix(`/dashboard/`)
+      kind: Rule
+      priority: 100
+      middlewares:
+        - name: legacy-dashboard-redirect
+        - name: tailscale-ipallowlist
+      services:
+        - name: api@internal
+          kind: TraefikService
+    # 4. Rota principal do Dashboard com stripPrefix de /traefik
+    - match: PathPrefix(`/traefik/dashboard/`)
       kind: Rule
       priority: 50
       middlewares:
+        - name: traefik-stripprefix
+        - name: tailscale-ipallowlist
+      services:
+        - name: api@internal
+          kind: TraefikService
+    # 5. API interna do Traefik necessária para o dashboard carregar dados
+    - match: PathPrefix(`/traefik/api`) || PathPrefix(`/api`)
+      kind: Rule
+      priority: 50
+      middlewares:
+        - name: traefik-stripprefix
         - name: tailscale-ipallowlist
       services:
         - name: api@internal

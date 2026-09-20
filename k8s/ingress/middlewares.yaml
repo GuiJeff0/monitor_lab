@@ -16,12 +16,44 @@ spec:
 apiVersion: traefik.io/v1alpha1
 kind: Middleware
 metadata:
-  name: dashboard-redirect
+  name: traefik-stripprefix
+  namespace: ingress
+spec:
+  stripPrefix:
+    prefixes:
+      - "/traefik"
+---
+apiVersion: traefik.io/v1alpha1
+kind: Middleware
+metadata:
+  name: traefik-redirect
   namespace: ingress
 spec:
   redirectRegex:
-    regex: "^.*(/dashboard)$"
+    regex: "^.*(/traefik/?)$"
+    replacement: "/traefik/dashboard/"
+    permanent: false
+---
+apiVersion: traefik.io/v1alpha1
+kind: Middleware
+metadata:
+  name: traefik-dashboard-redirect
+  namespace: ingress
+spec:
+  redirectRegex:
+    regex: "^.*(/traefik/dashboard)$"
     replacement: "${1}/"
+    permanent: false
+---
+apiVersion: traefik.io/v1alpha1
+kind: Middleware
+metadata:
+  name: legacy-dashboard-redirect
+  namespace: ingress
+spec:
+  redirectRegex:
+    regex: "^.*/dashboard/?$"
+    replacement: "/traefik/dashboard/"
     permanent: false
 ---
 # Middlewares no namespace portainer

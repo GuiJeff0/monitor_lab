@@ -115,44 +115,10 @@ O Dashboard do Traefik fornece uma interface web interativa para inspeção e de
 
 ### Configuração e Acesso
 
-- **Entrypoint**: `traefik` (porta `:8080`)
-- **URL**: `http://<tailscale-host>:8080/dashboard/` (ex: `http://homelab.tailxxxx.ts.net:8080/dashboard/` ou `http://100.x.y.z:8080/dashboard/`)
-- **Segurança**: O modo `api.insecure` está explicitamente **desabilitado** (`insecure: false` em `traefik/traefik.yml`). O acesso ao dashboard e à API interna (`api@internal`) é exposto exclusivamente através de um router protegido com o middleware **BasicAuth**.
-- **Autenticação**: Gerenciada pelo arquivo de configuração dinâmica `traefik/dynamic/dashboard.yml`.
-
-### Credenciais Padrão e Customização
-
-O ambiente local vem pré-configurado com as credenciais padrão de desenvolvimento:
-
-- **Usuário**: `admin`
-- **Senha**: `admin`
-
-Para alterar ou adicionar novos usuários, gere um novo hash htpasswd:
-
-```bash
-htpasswd -nb <usuario> <senha>
-```
-
-E adicione a linha resultante na lista `users` do middleware `dashboard-auth` em `traefik/dynamic/dashboard.yml`:
-
-```yaml
-http:
-  routers:
-    dashboard:
-      rule: "PathPrefix(`/api`) || PathPrefix(`/dashboard`)"
-      entryPoints:
-        - traefik
-      service: api@internal
-      middlewares:
-        - dashboard-auth
-
-  middlewares:
-    dashboard-auth:
-      basicAuth:
-        realm: "Traefik Dashboard"
-        users:
-          - "admin:$apr1$0ZD.qXtf$7HNOJuB5EOndJZhMsyyXm1"
-```
+- **URL Padrão**: `http://<tailscale-host>/traefik/dashboard/` (ex: `http://creedx66.tail096995.ts.net/traefik/dashboard/`)
+- **Redirecionamentos Amigáveis**: Acessar `http://<tailscale-host>/traefik` ou `http://<tailscale-host>/traefik/dashboard` redireciona automaticamente para a barra final `/traefik/dashboard/`.
+- **Segurança**: Rota protegida pelo middleware `tailscale-ipallowlist` em [`k8s/ingress/middlewares.yaml`](file:///var/www/projects/monitor_lab/k8s/ingress/middlewares.yaml), restringindo o tráfego estritamente à rede Tailscale.
+- **Roteamento Kubernetes**: Gerenciado declarativamente pelo IngressRoute [`k8s/ingress/traefik-ingress.yaml`](file:///var/www/projects/monitor_lab/k8s/ingress/traefik-ingress.yaml) conectado ao serviço interno `api@internal`.
 
 ## 9. Integração com Microsserviços
 
