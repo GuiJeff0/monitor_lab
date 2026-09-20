@@ -111,3 +111,4 @@ kubectl logs -n apps deployment/fastapi-bff -f
    # Uso de CPU dos pods
    sum by (pod) (rate(container_cpu_usage_seconds_total[1m]))
    ```
+

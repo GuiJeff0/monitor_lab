@@ -107,3 +107,4 @@ sops -d secrets/databases.enc.yaml | kubectl apply -f -
 - ❌ **NUNCA** commite o arquivo `keys.txt` ou qualquer arquivo contendo `AGE-SECRET-KEY-`.
 - ❌ **NUNCA** commite secrets que não tenham a extensão `.enc.yaml`.
 - ✅ Apenas a chave pública (`age1...`) e os arquivos `.enc.yaml` podem ir para o Git.
+

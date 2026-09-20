@@ -185,52 +185,45 @@ Toda a telemetria gerada nos serviços segue os padrões rigorosos de observabil
 # Estrutura do Repositório Central
 
 ```text
-observability-lab/
-├── docker-compose.yml              # Orquestração de Traefik, Grafana, Mimir, Loki, Tempo, Alloy
-├── .env                            # Versões de imagens e variáveis de ambiente globais
+monitor_lab/
+├── terraform/                          # Infraestrutura como Código (IaC)
+│   ├── providers.tf                    # Provedores Kubernetes e Helm
+│   ├── variables.tf                    # Variáveis parametrizáveis
+│   ├── main.tf                         # Namespaces, Traefik v3, Portainer, LGTM, Alloy e Flux
+│   └── outputs.tf                      # URLs de acesso direto aos dashboards
 │
-├── traefik/                        # Configurações do Proxy Reverso
-│   ├── traefik.yml
-│   └── dynamic/
+├── k8s/                                # Manifests Kubernetes (GitOps)
+│   ├── ingress/                        # Traefik IngressRoutes e Middlewares
+│   ├── observability/                  # ConfigMaps e StatefulSets (Mimir, Loki, Tempo, Alloy)
+│   ├── apps/fastapi-bff/               # Deployments de microsserviços com OTel
+│   └── gitops/flux-sync.yaml           # Sincronização automática com Flux CD
 │
-├── grafana/                        # Provisionamento e Dashboards
-│   ├── provisioning/
-│   │   └── datasources/            # Mimir, Loki, Tempo automáticos
-│   └── dashboards/
+├── secrets/                            # Segredos criptografados com SOPS
+│   ├── .sops.yaml                      # Regras de encriptação
+│   ├── README.md                       # Guia rápido de uso do SOPS
+│   └── templates/                      # Templates de segredos anonimizados
 │
-├── mimir/                          # Configurações do Grafana Mimir TSDB
-│   └── mimir.yml
-├── loki/                           # Configurações do Grafana Loki
-│   └── config.yml
-├── tempo/                          # Configurações do Grafana Tempo
-│   └── tempo.yml
-├── alloy/                          # Configurações do Grafana Alloy Collector
-│   └── config.alloy
+├── scripts/                            # Scripts de automação do servidor
+│   ├── mount-hdd.sh                    # Formatação e montagem do HDD de 1TB
+│   ├── bootstrap-tools.sh              # Instalação de kubectl, helm, terraform, age, sops
+│   ├── install-k3s.sh                  # Instalação e configuração do K3s
+│   └── sops-keygen.sh                  # Geração de par de chaves age
 │
-├── docs/                           # Documentações completas do ecossistema
-│   ├── README.md                   # Índice geral
-│   ├── observability-standard.md   # Padrão dos 3 pilares e telemetria
-│   ├── best-practices.md           # Guia de boas práticas, resiliência e segurança
-│   ├── ticket_system_architecture.md # Arquitetura detalhada do Ticket Booking System
-│   ├── infrastructure/             # Documentação detalhada dos componentes de infra
-│   │   ├── traefik.md
-│   │   ├── grafana.md
-│   │   ├── mimir.md
-│   │   ├── loki.md
-│   │   ├── tempo.md
-│   │   └── alloy.md
-│   └── microservices/              # Documentações individuais dos 8 microsserviços
-│       ├── fastapi-bff.md
-│       ├── auth-service.md
-│       ├── user-service.md
-│       ├── event-service.md
-│       ├── orders-service.md
-│       ├── payment-service.md
-│       ├── notification-service.md
-│       └── search-sync-worker.md
+├── .github/workflows/                  # CI/CD no GitHub Actions
+│   ├── ci-microservice.yml             # Build e push para Docker Hub
+│   └── terraform-validate.yml          # Lint e validação contínua do Terraform
 │
-└── README.md
+└── docs/                               # Documentação centralizada
+    ├── README.md                       # Índice geral da plataforma
+    ├── data-flow-and-architecture.md   # Fluxos síncronos, assíncronos e telemetria
+    ├── microservice-integration-guide.md # Guia de integração OTel SDK, Traces e Deploy
+    ├── local-development-and-testing.md  # Port-forwarding, curl e depuração
+    ├── sops-secrets-management.md      # Criptografia de segredos com SOPS e age
+    ├── k3s-migration-guide.md          # Guia operacional de bootstrap K3s
+    ├── standards/                      # Padrões de engenharia e telemetria
+    └── infrastructure/                 # Documentação detalhada dos componentes de infra
 ```
+
 
 ---
 
