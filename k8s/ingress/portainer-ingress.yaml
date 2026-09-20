@@ -18,7 +18,6 @@ spec:
       middlewares:
         - name: portainer-redirect
         - name: tailscale-ipallowlist
-          namespace: ingress
 
     # 2. Roteia /portainer/ com stripPrefix para o Portainer Web UI
     - match: PathPrefix(`/portainer/`)
@@ -30,4 +29,3 @@ spec:
       middlewares:
         - name: portainer-stripprefix
         - name: tailscale-ipallowlist
-          namespace: ingress

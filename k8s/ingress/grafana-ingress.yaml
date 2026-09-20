@@ -15,4 +15,3 @@ spec:
           port: 80
       middlewares:
         - name: tailscale-ipallowlist
-          namespace: ingress
