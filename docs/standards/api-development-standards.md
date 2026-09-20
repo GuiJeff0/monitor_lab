@@ -1,7 +1,8 @@
 # API & Microservices Development Standards
 
 > **Versão:** 2.0  
-> **Objetivo:** Definir padrões arquiteturais, convenções de código, contratos de comunicação (REST e gRPC), mensageria (AMQP/RabbitMQ) e requisitos de observabilidade para todos os microsserviços do **Ticket Booking System**.
+> **Objetivo:** Definir padrões arquiteturais, convenções de código, contratos de comunicação (REST e gRPC),
+> mensageria (AMQP/RabbitMQ) e requisitos de observabilidade para todos os microsserviços da plataforma.
 
 ---
 
@@ -137,7 +138,7 @@ fastapi-bff/
 
 | Banco | Papel no Ecossistema | Padrão Obrigatório |
 |---|---|---|
-| **PostgreSQL 16** | Usuários, Pedidos, Ingressos | Transações ACID, Índices em chaves de busca, Concorrência com `SELECT ... FOR UPDATE SKIP LOCKED` |
+| **PostgreSQL 16** | Dados Transacionais e Entidades Relacionais | Transações ACID, Índices em chaves de busca, Concorrência com `SELECT ... FOR UPDATE SKIP LOCKED` |
 | **MongoDB 7** | Catálogo de Eventos, Auditoria | Documentos versionados, Índices compostos por data/categoria, TTL indexes em logs temporários |
 | **Elasticsearch 8** | Busca Full-Text e Agregações | Mapeamentos explícitos com analyzers customizados, indexação assíncrona orientada a eventos |
 | **Redis** | Cache e Rate Limiting | Chaves padronizadas (`prefix:entity:id`), TTL obrigatório em todos os caches (ex: 60s) |

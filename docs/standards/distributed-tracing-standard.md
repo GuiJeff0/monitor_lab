@@ -1,7 +1,8 @@
 # Padrão de Tracing Distribuído e Propagação de Contexto
 
 > **Versão:** 2.0  
-> **Objetivo:** Estabelecer a especificação de rastreamento distribuído (Distributed Tracing), contexto W3C e Correlation ID através de todas as camadas do **Ticket Booking System** (HTTP, gRPC, RabbitMQ e Banco de Dados).
+> **Objetivo:** Estabelecer a especificação de rastreamento distribuído (Distributed Tracing), contexto W3C e
+> Correlation ID através de todas as camadas do ecossistema de microsserviços (HTTP, gRPC, RabbitMQ e Bancos).
 
 ---
 

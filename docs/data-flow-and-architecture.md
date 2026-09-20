@@ -1,6 +1,7 @@
 # Fluxo de Dados e Arquitetura do Sistema
 
-Este documento descreve detalhadamente como os dados trafegam pelo ecossistema do **Ticket Booking System** e pela infraestrutura do **Observability Lab** no cluster K3s.
+Este documento descreve detalhadamente como os dados trafegam pelo ecossistema de microsserviços
+e pela infraestrutura do **Observability Lab** no cluster K3s.
 
 ---
 
@@ -97,7 +98,7 @@ flowchart TD
 
 ---
 
-## 3. Fluxo 2: Compra de Ingressos de Alta Concorrência (Assíncrono)
+## 3. Fluxo 2: Processamento Transacional de Alta Concorrência (Assíncrono)
 
 ```text
 [Cliente] ──► Traefik ──► FastAPI BFF ──► Publica 'order.created' ──► Retorna 202 Accepted (Imediato)
@@ -109,7 +110,7 @@ flowchart TD
                                       [Orders Service Worker]
                                       • Abre transação PostgreSQL
                                       • SELECT ... FOR UPDATE SKIP LOCKED
-                                      • Garante reserva única do assento
+                                      • Garante reserva única de recurso
                                       • Publica evento 'payment.process'
                                                 │
                                                 ▼

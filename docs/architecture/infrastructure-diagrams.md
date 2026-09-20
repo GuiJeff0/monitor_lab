@@ -1,4 +1,4 @@
-# Arquitetura e Diagramas da Infraestrutura — Ticket Booking Lab
+# Arquitetura e Diagramas da Infraestrutura — Observability Lab
 
 > **Documento:** Guia Visual da Infraestrutura e Ecossistema  
 > **Objetivo:** Mapear todos os fluxos de rede, DNS, telemetria, roteamento e mensageria utilizando diagramas Mermaid.

@@ -1,6 +1,9 @@
-# Observability Lab & High-Concurrency Ticket Booking System
+# Observability Lab — Plataforma Cloud-Native de Microsserviços & Observabilidade
 
-Infraestrutura de observabilidade e orquestração cloud-native de nível empresarial para o ecossistema de microsserviços do **Ticket Booking System**, provisionada via **Terraform** em **K3s (Kubernetes)**, com **Portainer CE**, **Traefik v3**, stack **LGTM** (Grafana, Mimir, Loki, Tempo, Alloy), **OpenTelemetry**, **SOPS + age** para segredos e **GitOps com Flux CD e Docker Hub**.
+Infraestrutura de observabilidade e orquestração cloud-native de nível empresarial para qualquer ecossistema de
+microsserviços de alta concorrência, provisionada via **Terraform** em **K3s (Kubernetes)**, com **Portainer CE**,
+**Traefik v3**, stack **LGTM** (Grafana, Mimir, Loki, Tempo, Alloy), **OpenTelemetry**, **SOPS + age** para segredos
+e **GitOps com Flux CD e Docker Hub**.
 
 ---
 

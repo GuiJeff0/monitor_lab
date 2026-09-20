@@ -205,14 +205,14 @@ monitor_lab/
 - [ ] `search-sync-worker` (Go/AMQP) sincronizando eventos no Elasticsearch
 - [ ] Caching de catálogo de eventos de alta frequência no Redis
 
-## Fase 5 — Pipeline de Compra de Ingressos de Alta Concorrência
+## Fase 5 — Pipeline Transacional & Processamento Assíncrono
 
-- [ ] `orders-service` (Go/AMQP/gRPC) com bloqueio pessimista (`SKIP LOCKED`) no PostgreSQL
-- [ ] `payment-service` (Go/AMQP) simulando gateway de pagamento e resiliência
+- [ ] `orders-service` (Go/AMQP/gRPC) com concorrência e bloqueio pessimista (`SKIP LOCKED`) no PostgreSQL
+- [ ] `payment-service` (Go/AMQP) simulando integração externa, retries e resiliência
 - [ ] `notification-service` (Go/AMQP) processando notificações e auditoria no MongoDB
 
 ## Fase 6 — Testes de Carga & Validação de Observabilidade
 
-- [ ] Testes de carga massiva com k6 simulando disputa de ingressos (flash sale)
-- [ ] Validação de Trace distribuído ponta a ponta (Cliente → BFF → gRPC → RabbitMQ → PostgreSQL)
+- [ ] Testes de carga massiva com k6 simulando cenários de altíssima concorrência e throughput
+- [ ] Validação de Trace distribuído ponta a ponta (Cliente → BFF → gRPC → RabbitMQ → Bancos)
 - [ ] Dashboards RED completos no Grafana e alertas em tempo real
